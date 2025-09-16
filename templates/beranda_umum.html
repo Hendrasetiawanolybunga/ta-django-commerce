@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+  Beranda | UD. Barokah Jaya Beton
+{% endblock %}
+
+{% block content %}
+  <section class="hero-section text-center position-relative">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-12 hero-text">
+          <h1 class="display-4 fw-bold mb-4 hero-title">Selamat Datang di UD. Barokah Jaya Beton</h1>
+          <p class="lead mb-4 hero-description">Temukan produk berkualitas tinggi dengan harga terjangkau. Belanja mudah, aman, dan terpercaya hanya di UD. Barokah Jaya Beton.</p>
+          <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+            <a href="{% url 'admin:index' %}" class="btn btn-outline-light btn-lg px-4"><i class="fas fa-user-shield"></i> Login Admin</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="products" class="py-5 bg-light">
+    <div class="container">
+      <h2 class="text-center mb-4">Produk Unggulan</h2>
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="card product-card h-100 border-0 shadow-sm">
+            <img src="{% static 'images/produk1.jpeg' %}" class="card-img-top" alt="..." />
+            <div class="card-body">
+              <h5 class="card-title">Produk 1</h5>
+              <p class="card-text">Deskripsi singkat produk...</p>
+              <a href="#" class="btn btn-primary">Lihat Detail</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
