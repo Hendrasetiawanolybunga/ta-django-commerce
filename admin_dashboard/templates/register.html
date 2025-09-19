@@ -1,0 +1,276 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrasi Pelanggan</title>
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts - Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #ECFFE6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 20px 0;
+            color: #000000;
+        }
+        .register-card {
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            border: none;
+            overflow: hidden;
+            background-color: #ECFFE6;
+        }
+        .register-header {
+            background: linear-gradient(to right, #059212, #000000);
+            color: #ECFFE6;
+            padding: 25px;
+            text-align: center;
+        }
+        .form-control {
+            border-radius: 10px;
+            padding: 12px 15px;
+            border: 2px solid #CCCCCC;
+            background-color: #FFFFFF;
+            color: #000000;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+            border-color: #059212;
+            box-shadow: 0 0 0 0.25rem rgba(5, 146, 18, 0.25);
+            background-color: #FFFFFF;
+        }
+        .form-control::placeholder {
+            color: #555555;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #000000;
+        }
+        .alert {
+            border-radius: 10px;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        .password-toggle {
+            cursor: pointer;
+            color: #666;
+            background-color: #f8f9fa;
+            border: 2px solid #CCCCCC;
+            border-left: none;
+            border-radius: 0 10px 10px 0;
+            padding: 0 15px;
+            display: flex;
+            align-items: center;
+        }
+        .input-group {
+            position: relative;
+        }
+        .input-group-text {
+            background-color: #f8f9fa;
+            border: 2px solid #CCCCCC;
+            border-right: none;
+            border-radius: 10px 0 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-7">
+                <div class="card register-card">
+                    <div class="register-header">
+                        <h3 class="mb-0"><i class="fas fa-user-plus me-2"></i>Registrasi Pelanggan</h3>
+                        <p class="mb-0">Buat akun baru untuk berbelanja</p>
+                    </div>
+                    <div class="card-body p-4">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        <form method="post" action="{% url 'register_pelanggan' %}">
+                            {% csrf_token %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="{{ form.nama_pelanggan.id_for_label }}" class="form-label">Nama Lengkap</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-user"></i>
+                                            </span>
+                                            {{ form.nama_pelanggan }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-user-tag"></i>
+                                            </span>
+                                            {{ form.username }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="{{ form.no_hp.id_for_label }}" class="form-label">Nomor HP</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-phone"></i>
+                                            </span>
+                                            {{ form.no_hp }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="{{ form.tanggal_lahir.id_for_label }}" class="form-label">Tanggal Lahir</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-calendar"></i>
+                                            </span>
+                                            {{ form.tanggal_lahir }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="{{ form.alamat.id_for_label }}" class="form-label">Alamat</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </span>
+                                    {{ form.alamat }}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="{{ form.password.id_for_label }}" class="form-label">Password</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-lock"></i>
+                                            </span>
+                                            {{ form.password }}
+                                            <span class="input-group-text password-toggle" id="togglePassword1">
+                                                <i class="fas fa-eye"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="{{ form.password_confirm.id_for_label }}" class="form-label">Konfirmasi Password</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-lock"></i>
+                                            </span>
+                                            {{ form.password_confirm }}
+                                            <span class="input-group-text password-toggle" id="togglePassword2">
+                                                <i class="fas fa-eye"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-success btn-lg">Daftar</button>
+                            </div>
+                        </form>
+                        
+                        <div class="text-center mt-4">
+                            <p class="mb-0">Sudah punya akun? <a href="{% url 'login_pelanggan' %}" class="link-success">Login di sini</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Add focus and blur effects to form inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = document.querySelectorAll('.form-control');
+            inputs.forEach(input => {
+                // Set initial placeholder color
+                if (input.placeholder) {
+                    input.style.color = '#555555';
+                }
+                
+                input.addEventListener('focus', function() {
+                    this.style.borderColor = '#059212';
+                    this.style.backgroundColor = '#FFFFFF';
+                    this.style.color = '#000000';
+                });
+                
+                input.addEventListener('blur', function() {
+                    this.style.borderColor = '#CCCCCC';
+                    this.style.backgroundColor = '#FFFFFF';
+                    this.style.color = '#000000';
+                });
+            });
+            
+            // Password toggle functionality for first password field
+            const togglePassword1 = document.querySelector('#togglePassword1');
+            const password1 = document.querySelector('#{{ form.password.id_for_label }}');
+            
+            if (togglePassword1 && password1) {
+                togglePassword1.addEventListener('click', function () {
+                    // Toggle the type attribute
+                    const type = password1.getAttribute('type') === 'password' ? 'text' : 'password';
+                    password1.setAttribute('type', type);
+                    
+                    // Toggle the eye icon
+                    this.querySelector('i').classList.toggle('fa-eye');
+                    this.querySelector('i').classList.toggle('fa-eye-slash');
+                });
+            }
+            
+            // Password toggle functionality for confirm password field
+            const togglePassword2 = document.querySelector('#togglePassword2');
+            const password2 = document.querySelector('#{{ form.password_confirm.id_for_label }}');
+            
+            if (togglePassword2 && password2) {
+                togglePassword2.addEventListener('click', function () {
+                    // Toggle the type attribute
+                    const type = password2.getAttribute('type') === 'password' ? 'text' : 'password';
+                    password2.setAttribute('type', type);
+                    
+                    // Toggle the eye icon
+                    this.querySelector('i').classList.toggle('fa-eye');
+                    this.querySelector('i').classList.toggle('fa-eye-slash');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

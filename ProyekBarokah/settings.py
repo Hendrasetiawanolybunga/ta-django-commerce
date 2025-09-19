@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     'admin_dashboard',
 ]
 
@@ -102,11 +103,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
-
-
-# ... kode lainnya di atas ...
-
 # STATIC_URL adalah URL yang digunakan untuk mereferensikan file statis.
 STATIC_URL = '/static/'
 
@@ -128,3 +124,70 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'admin_dashboard.Admin'
+JAZZMIN_SETTINGS = {
+    "site_title": "Barokah Jaya Beton",
+    "site_header": "Barokah Jaya Beton",
+    "site_brand": "Barokah Jaya Beton",
+    "site_logo": None,
+    "hide_models": [
+        "auth.Group",
+    ],
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "admin_dashboard.Pelanggan": "fas fa-user-friends",
+        "admin_dashboard.Kategori": "fas fa-tags",
+        "admin_dashboard.DiskonPelanggan": "fas fa-percent",
+        "admin_dashboard.Produk": "fas fa-boxes",
+        "admin_dashboard.Transaksi": "fas fa-shopping-cart",
+        "admin_dashboard.DetailTransaksi": "fas fa-receipt",
+        "admin_dashboard.Notifikasi": "fas fa-bell",
+        "admin_dashboard.admin": "fas fa-user",
+    },
+    "order_with_respect_to": [
+        "admin_dashboard.Produk",
+        "admin_dashboard.Kategori",
+        "admin_dashboard.DiskonPelanggan",
+        "admin_dashboard.Notifikasi",
+        "admin_dashboard.Transaksi",
+        "admin_dashboard.DetailTransaksi",
+        "admin_dashboard.Pelanggan",
+    ],
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-success",
+    "accent": "accent-navy",
+    "navbar": "navbar-success navbar-dark",
+    "no_navbar_border": False,
+    "navbar_fixed": False,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-light-success",
+    "sidebar_nav_small_text": True,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": False,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": True,
+    "theme": "yeti",
+    "dark_mode_theme": None,
+    "button_classes": {
+        "primary": "btn-outline-primary",
+        "secondary": "btn-outline-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    },
+    "actions_sticky_top": False
+}
+
+
+

@@ -1,0 +1,28 @@
+{% load static %}
+<nav class="navbar navbar-expand-lg" style="background-color: #059212;">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="{% url 'beranda_umum' %}" style="color: #ECFFE6;">
+            <i class="fas fa-store me-2"></i>UD. Barokah Jaya Beton
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavPublic" 
+                aria-controls="navbarNavPublic" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon" style="color: #ECFFE6;"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNavPublic">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item me-2">
+                    <a class="nav-link btn" style="background-color: #ECFFE6; color: #059212;" href="{% url 'login_pelanggan' %}">
+                        <i class="fas fa-sign-in-alt me-1"></i>Login
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link btn" style="background-color: #000000; color: #ECFFE6;" href="{% url 'register_pelanggan' %}">
+                        <i class="fas fa-user-plus me-1"></i>Daftar
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>

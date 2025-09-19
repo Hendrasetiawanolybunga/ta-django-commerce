@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}
+    Dashboard Pelanggan
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section with Two Columns -->
+<section class="container my-5">
+    <div class="row align-items-center">
+        <div class="col-lg-6 mb-4 mb-lg-0">
+            <h1 class="display-4 fw-bold mb-4" style="color: #059212;">Selamat Datang, {{ pelanggan.nama_pelanggan }}!</h1>
+            <p class="lead mb-4">Nikmati kemudahan berbelanja produk beton precast berkualitas tinggi dari UD. Barokah Jaya Beton.</p>
+            <div class="d-grid gap-3 d-md-flex">
+                <a href="{% url 'produk_list' %}" class="btn btn-success btn-lg px-4">
+                    <i class="fas fa-box me-2"></i>Lihat Produk
+                </a>
+                <a href="{% url 'keranjang' %}" class="btn btn-outline-success btn-lg px-4">
+                    <i class="fas fa-shopping-cart me-2"></i>Keranjang
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <img src="{% static 'images/hero-image.jpeg' %}" class="img-fluid rounded shadow" alt="UD. Barokah Jaya Beton">
+        </div>
+    </div>
+</section>
+
+<!-- Latest Products Section -->
+<section class="container my-5">
+    <h2 class="text-center mb-5 section-title" style="color: #059212;">Produk Terbaru</h2>
+    {% if produk_terbaru %}
+    <div class="row g-4">
+        {% for produk in produk_terbaru %}
+        <div class="col-md-4">
+            <div class="card card-custom h-100">
+                <img src="{{ produk.foto_produk.url }}" class="card-img-top" alt="{{ produk.nama_produk }}" style="height: 200px; object-fit: cover;">
+                <div class="card-body">
+                    <h5 class="card-title">{{ produk.nama_produk }}</h5>
+                    <p class="card-text">{{ produk.deskripsi_produk|truncatewords:15 }}</p>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="fw-bold" style="color: #059212;">Rp {{ produk.harga_produk|intcomma }}</span>
+                        <small class="text-muted">Stok: {{ produk.stok_produk|intcomma }}</small>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-custom" data-bs-toggle="modal" data-bs-target="#detailModal{{ produk.id }}">
+                            <i class="fas fa-eye me-1"></i>Lihat Detail
+                        </button>
+                        <form action="{% url 'tambah_ke_keranjang' produk.id %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="jumlah" value="1">
+                            <button type="submit" class="btn btn-outline-success">
+                                <i class="fas fa-cart-plus me-1"></i>Tambah ke Keranjang
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Detail Modal -->
+        <div class="modal fade" id="detailModal{{ produk.id }}" tabindex="-1" aria-labelledby="detailModalLabel{{ produk.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content rounded-3">
+                    <div class="modal-header" style="background-color: #059212; color: #ECFFE6;">
+                        <h5 class="modal-title" id="detailModalLabel{{ produk.id }}">{{ produk.nama_produk }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <img src="{{ produk.foto_produk.url }}" class="img-fluid rounded" alt="{{ produk.nama_produk }}">
+                            </div>
+                            <div class="col-md-6">
+                                <p class="fw-bold" style="color: #059212; font-size: 1.5rem;">Rp {{ produk.harga_produk|intcomma }}</p>
+                                <p class="text-muted">Stok: {{ produk.stok_produk|intcomma }}</p>
+                                <hr>
+                                <h6>Deskripsi:</h6>
+                                <p>{{ produk.deskripsi_produk }}</p>
+                                
+                                <!-- Add to cart form in modal -->
+                                <form action="{% url 'tambah_ke_keranjang' produk.id %}" method="post">
+                                    {% csrf_token %}
+                                    <div class="mb-3">
+                                        <label for="jumlah_{{ produk.id }}" class="form-label">Jumlah:</label>
+                                        <input type="number" class="form-control" id="jumlah_{{ produk.id }}" name="jumlah" value="1" min="1" max="{{ produk.stok_produk }}">
+                                    </div>
+                                    <button type="submit" class="btn btn-custom">
+                                        <i class="fas fa-cart-plus me-1"></i>Tambah ke Keranjang
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle me-2"></i>Belum ada produk tersedia.
+    </div>
+    {% endif %}
+</section>
+
+<!-- Profile Section -->
+<section class="container my-5 py-5 bg-white rounded shadow-sm">
+    <h2 class="text-center mb-5 section-title" style="color: #059212;">Profil UD. Barokah Jaya Beton</h2>
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <p class="lead">UD. Barokah Jaya Beton adalah perusahaan yang bergerak di bidang produksi beton precast dengan lebih dari 10 tahun pengalaman di industri konstruksi Indonesia.</p>
+            <p>Kami berkomitmen untuk menyediakan produk beton precast berkualitas tinggi dengan harga yang kompetitif, serta pelayanan terbaik untuk memenuhi kebutuhan konstruksi pelanggan kami.</p>
+            
+            <div class="row mt-4">
+                <div class="col-md-6 mb-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <span>Kualitas Terjamin</span>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <span>Harga Kompetitif</span>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <span>Pengiriman Tepat Waktu</span>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <span>Pelayanan Profesional</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Shopping Guide Section -->
+<section class="container my-5 py-5 bg-light rounded">
+    <h2 class="text-center mb-5 section-title" style="color: #059212;">Tata Cara Belanja</h2>
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="text-center p-3 bg-white rounded shadow-sm h-100">
+                        <div class="mb-3">
+                            <span class="badge bg-success rounded-pill" style="font-size: 1.5rem; width: 50px; height: 50px; display: inline-flex; align-items: center; justify-content: center;">1</span>
+                        </div>
+                        <h5>Pilih Produk</h5>
+                        <p class="text-muted">Jelajahi katalog produk kami dan pilih produk yang Anda inginkan.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="text-center p-3 bg-white rounded shadow-sm h-100">
+                        <div class="mb-3">
+                            <span class="badge bg-success rounded-pill" style="font-size: 1.5rem; width: 50px; height: 50px; display: inline-flex; align-items: center; justify-content: center;">2</span>
+                        </div>
+                        <h5>Tambah ke Keranjang</h5>
+                        <p class="text-muted">Tambahkan produk ke keranjang belanja Anda.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="text-center p-3 bg-white rounded shadow-sm h-100">
+                        <div class="mb-3">
+                            <span class="badge bg-success rounded-pill" style="font-size: 1.5rem; width: 50px; height: 50px; display: inline-flex; align-items: center; justify-content: center;">3</span>
+                        </div>
+                        <h5>Checkout</h5>
+                        <p class="text-muted">Lakukan checkout dan isi informasi pengiriman Anda.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="text-center p-3 bg-white rounded shadow-sm h-100">
+                        <div class="mb-3">
+                            <span class="badge bg-success rounded-pill" style="font-size: 1.5rem; width: 50px; height: 50px; display: inline-flex; align-items: center; justify-content: center;">4</span>
+                        </div>
+                        <h5>Pembayaran</h5>
+                        <p class="text-muted">Lakukan pembayaran dan tunggu konfirmasi dari kami.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

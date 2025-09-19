@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Kelola Akun{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4 text-center fw-bold" style="color: #059212;">Kelola Akun Anda</h2>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card card-custom">
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" 
+                             style="width: 100px; height: 100px; background-color: #059212; color: #ECFFE6;">
+                            <i class="fas fa-user text-white" style="font-size: 2.5rem;"></i>
+                        </div>
+                        <h3 class="card-title">{{ pelanggan.nama_pelanggan }}</h3>
+                        <p class="text-muted">{{ pelanggan.username }}</p>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3 rounded" style="background-color: #ECFFE6;">
+                                <small class="text-muted">Username</small>
+                                <p class="mb-0">{{ pelanggan.username }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded" style="background-color: #ECFFE6;">
+                                <small class="text-muted">Nomor HP</small>
+                                <p class="mb-0">{{ pelanggan.no_hp }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded" style="background-color: #ECFFE6;">
+                                <small class="text-muted">Tanggal Lahir</small>
+                                <p class="mb-0">{{ pelanggan.tanggal_lahir }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded" style="background-color: #ECFFE6;">
+                                <small class="text-muted">Alamat</small>
+                                <p class="mb-0">{{ pelanggan.alamat }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#editAkunModal">
+                            <i class="fas fa-edit me-1"></i>Edit Data Diri
+                        </button>
+                        <a href="{% url 'logout_pelanggan' %}" class="btn btn-danger">
+                            <i class="fas fa-sign-out-alt me-1"></i>Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Account Detail Modal -->
+<div class="modal fade" id="editAkunModal" tabindex="-1" aria-labelledby="editAkunModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-3">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="editAkunModalLabel">Edit Akun</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'akun' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-12">
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.nama_pelanggan.id_for_label }}" class="form-label fw-bold">Nama Lengkap</label>
+                                {{ form.nama_pelanggan }}
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ form.no_hp.id_for_label }}" class="form-label fw-bold">Nomor HP</label>
+                                {{ form.no_hp }}
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ form.tanggal_lahir.id_for_label }}" class="form-label fw-bold">Tanggal Lahir</label>
+                                {{ form.tanggal_lahir }}
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ form.alamat.id_for_label }}" class="form-label fw-bold">Alamat</label>
+                                {{ form.alamat }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-control {
+        border-radius: 10px;
+        padding: 12px 15px;
+        border: 2px solid #CCCCCC;
+        background-color: #FFFFFF;
+        color: #000000;
+        transition: all 0.3s ease;
+    }
+    .form-control:focus {
+        border-color: #059212;
+        box-shadow: 0 0 0 0.25rem rgba(5, 146, 18, 0.25);
+        background-color: #FFFFFF;
+    }
+    .form-label {
+        font-weight: 500;
+        color: #000000;
+    }
+    .alert {
+        border-radius: 10px;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add focus and blur effects to form inputs
+    document.addEventListener('DOMContentLoaded', function() {
+        const inputs = document.querySelectorAll('.form-control');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.style.borderColor = '#059212';
+                this.style.backgroundColor = '#FFFFFF';
+                this.style.color = '#000000';
+            });
+            
+            input.addEventListener('blur', function() {
+                this.style.borderColor = '#CCCCCC';
+                this.style.backgroundColor = '#FFFFFF';
+                this.style.color = '#000000';
+            });
+        });
+    });
+</script>
+{% endblock %}

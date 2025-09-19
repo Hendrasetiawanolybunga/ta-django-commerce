@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}
+    Daftar Produk
+{% endblock %}
+
+{% block content %}
+<section class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4 text-center fw-bold" style="color: #059212;">Daftar Produk Kami</h2>
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row g-4">
+        {% for p in produk %}
+        <div class="col-md-4 col-sm-6">
+            <div class="card card-custom h-100 position-relative">
+                <!-- Discount badge positioned at top right corner of the image -->
+                {% if p.diskon_aktif %}
+                <div class="position-absolute top-0 end-0 m-2">
+                    <span class="badge bg-danger fs-6">
+                        <i class="fas fa-tags me-1"></i>Diskon {{ p.diskon_aktif.persen_diskon }}%
+                    </span>
+                </div>
+                {% endif %}
+                <img src="{{ p.foto_produk.url }}" class="card-img-top" alt="{{ p.nama_produk }}" style="height: 200px; object-fit: cover;">
+                <div class="card-body">
+                    <h5 class="card-title product-title">{{ p.nama_produk }}</h5>
+                    <p class="card-text product-description">{{ p.deskripsi_produk|truncatewords:20 }}</p>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="fw-bold product-price" style="color: #059212;">Rp {{ p.harga_produk|intcomma }}</span>
+                        <small class="text-muted">Stok: {{ p.stok_produk|intcomma }}</small>
+                    </div>
+                    <div class="d-flex gap-2 mb-2">
+                        <button type="button" class="btn btn-custom flex-fill" data-bs-toggle="modal" data-bs-target="#detailModal{{ p.id }}" title="Detail Produk">
+                            <i class="fas fa-eye"></i>
+                            <span class="d-none d-md-inline ms-1">Detail</span>
+                        </button>
+                        <form action="{% url 'tambah_ke_keranjang' p.id %}" method="post" class="d-inline flex-fill">
+                            {% csrf_token %}
+                            <input type="hidden" name="jumlah" value="1">
+                            <button type="submit" class="btn btn-outline-success w-100" title="Tambah ke Keranjang">
+                                <i class="fas fa-cart-plus"></i>
+                                <span class="d-none d-md-inline ms-1">Keranjang</span>
+                            </button>
+                        </form>
+                    </div>
+                    <form action="{% url 'checkout_langsung' p.id %}" method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="jumlah" value="1">
+                        <button type="submit" class="btn btn-success btn-sm w-100">
+                            <i class="fas fa-bolt me-1"></i>Checkout Langsung
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Detail Modal -->
+        <div class="modal fade" id="detailModal{{ p.id }}" tabindex="-1" aria-labelledby="detailModalLabel{{ p.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content rounded-3">
+                    <div class="modal-header" style="background-color: #059212; color: #ECFFE6;">
+                        <h5 class="modal-title" id="detailModalLabel{{ p.id }}">{{ p.nama_produk }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <img src="{{ p.foto_produk.url }}" class="img-fluid rounded" alt="{{ p.nama_produk }}">
+                            </div>
+                            <div class="col-md-6">
+                                <p class="fw-bold" style="color: #059212; font-size: 1.5rem;">Rp {{ p.harga_produk|intcomma }}</p>
+                                <p class="text-muted">Stok: {{ p.stok_produk|intcomma }}</p>
+                                <!-- Discount information in modal -->
+                                {% if p.diskon_aktif %}
+                                <div class="mb-2">
+                                    <span class="badge bg-danger fs-6">
+                                        <i class="fas fa-tags me-1"></i>Diskon {{ p.diskon_aktif.persen_diskon }}%
+                                    </span>
+                                </div>
+                                {% endif %}
+                                <hr>
+                                <h6>Deskripsi:</h6>
+                                <p>{{ p.deskripsi_produk }}</p>
+                                
+                                <!-- Add to cart form in modal -->
+                                <form action="{% url 'tambah_ke_keranjang' p.id %}" method="post">
+                                    {% csrf_token %}
+                                    <div class="mb-3">
+                                        <label for="jumlah_{{ p.id }}" class="form-label">Jumlah:</label>
+                                        <input type="number" class="form-control" id="jumlah_{{ p.id }}" name="jumlah" value="1" min="1" max="{{ p.stok_produk }}">
+                                    </div>
+                                    <button type="submit" class="btn btn-custom">
+                                        <i class="fas fa-cart-plus me-1"></i>Tambah ke Keranjang
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 767px) {
+        .product-title {
+            font-size: 1.1rem;
+        }
+        .product-description {
+            font-size: 0.9rem;
+        }
+        .product-price {
+            font-size: 1rem;
+        }
+        .btn {
+            font-size: 0.85rem;
+            padding: 0.375rem 0.5rem;
+        }
+    }
+</style>
+{% endblock %}

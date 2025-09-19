@@ -1,0 +1,47 @@
+{% extends "admin/change_list.html" %}
+{% load admin_urls static admin_list %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .bukti-btn {
+        padding: 2px 8px;
+        font-size: 12px;
+    }
+    
+    .action-btn {
+        margin: 0 2px;
+    }
+</style>
+{% endblock %}
+
+{% block result_list %}
+    {{ block.super }}
+{% endblock %}
+
+{% block footer %}
+{{ block.super }}
+<!-- Modal for Bukti Pembayaran -->
+<div class="modal fade" id="buktiModal" tabindex="-1" aria-labelledby="buktiModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="buktiModalLabel">Bukti Pembayaran</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="buktiImage" src="" alt="Bukti Pembayaran" class="img-fluid" style="max-height: 70vh;">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showBuktiBayar(url) {
+    document.getElementById('buktiImage').src = url;
+}
+</script>
+{% endblock %}

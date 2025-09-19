@@ -17,9 +17,9 @@ class BaseModelAdmin(admin.ModelAdmin):
         links = []
         if obj:
             edit_url = reverse(f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}_change', args=[obj.pk])
-            links.append(f'<a href="{edit_url}" class="button">Edit</a>')
+            links.append(f'<a href="{edit_url}" class="btn btn-sm btn-primary" title="Edit"><i class="fas fa-edit"></i></a>')
             delete_url = reverse(f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}_delete', args=[obj.pk])
-            links.append(f'<a href="{delete_url}" class="button text-danger">Hapus</a>')
+            links.append(f'<a href="{delete_url}" class="btn btn-sm btn-danger" title="Hapus"><i class="fas fa-trash"></i></a>')
         return format_html('&nbsp;'.join(links))
 
     get_actions_links.short_description = 'Aksi'
@@ -126,6 +126,38 @@ class ProdukAdmin(BaseModelAdmin):
     list_display = ['nama_produk', 'harga_produk', 'stok_produk', 'get_actions_links']
     search_fields = ['nama_produk']
     list_filter = ['stok_produk']
+    
+    def save_model(self, request, obj, form, change):
+        # Check if this is a new product
+        is_new = not change
+        
+        # Get the old object if it exists
+        old_obj = None
+        if change:
+            try:
+                old_obj = Produk.objects.get(pk=obj.pk)
+            except Produk.DoesNotExist:
+                is_new = True
+        
+        # Save the product
+        super().save_model(request, obj, form, change)
+        
+        # Send notifications
+        if is_new:
+            # Notify all customers about new product with a link to the product
+            from .views import create_notification_for_all_customers
+            # Create a link to the product list page
+            create_notification_for_all_customers(
+                "Produk Baru", 
+                f"Produk baru telah tersedia: {obj.nama_produk}. <a href='/produk/' class='alert-link'>Lihat detail produk</a>"
+            )
+        elif old_obj and old_obj.stok_produk == 0 and obj.stok_produk > 0:
+            # Notify all customers about restocked product
+            from .views import create_notification_for_all_customers
+            create_notification_for_all_customers(
+                "Stok Diperbarui", 
+                f"Stok produk {obj.nama_produk} telah diperbarui. <a href='/produk/' class='alert-link'>Pesan sekarang!</a>"
+            )
 
 # --- Pendaftaran Inline untuk DetailTransaksi ---
 class DetailTransaksiInline(admin.TabularInline):
@@ -137,10 +169,79 @@ class DetailTransaksiInline(admin.TabularInline):
 # --- Pendaftaran Transaksi dengan Inline dan Logika Stok/Total ---
 @admin.register(Transaksi)
 class TransaksiAdmin(BaseModelAdmin):
-    list_display = ['id', 'pelanggan', 'tanggal', 'total', 'status_transaksi', 'get_actions_links']
+    list_display = ['pelanggan', 'tanggal', 'total', 'status_transaksi_interactive', 'bukti_bayar_link', 'get_actions_links']
     list_filter = ['status_transaksi', 'tanggal']
-    search_fields = ['pelanggan__nama_pelanggan', 'id']
+    search_fields = ['pelanggan__nama_pelanggan']
     inlines = [DetailTransaksiInline]
+    actions = ['ubah_status_diproses', 'ubah_status_dibayar', 'ubah_status_dikirim', 'ubah_status_dibatalkan']
+    
+    def status_transaksi_interactive(self, obj):
+        # Display status as plain text instead of dropdown
+        status_labels = {
+            'DIPROSES': 'Diproses',
+            'DIBAYAR': 'Dibayar',
+            'DIKIRIM': 'Dikirim',
+            'DIBATALKAN': 'Dibatalkan',
+        }
+        
+        # Get the display label for the current status
+        display_label = status_labels.get(obj.status_transaksi, obj.status_transaksi)
+        
+        # Add styling based on status
+        status_styles = {
+            'DIPROSES': 'background-color: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-weight: 500;',
+            'DIBAYAR': 'background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-weight: 500;',
+            'DIKIRIM': 'background-color: #cce7ff; color: #004085; padding: 4px 8px; border-radius: 4px; font-weight: 500;',
+            'DIBATALKAN': 'background-color: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-weight: 500;',
+        }
+        
+        style = status_styles.get(obj.status_transaksi, 'padding: 4px 8px; border-radius: 4px; font-weight: 500;')
+        
+        return format_html(
+            '<span style="{}">{}</span>',
+            style,
+            display_label
+        )
+    status_transaksi_interactive.short_description = "Status Transaksi"
+    status_transaksi_interactive.allow_tags = True
+    
+    def bukti_bayar_link(self, obj):
+        if obj.bukti_bayar:
+            # Check if it's an image based on extension
+            url = obj.bukti_bayar.url
+            if url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                return format_html(
+                    '<a href="{}" target="_blank" class="btn btn-sm btn-info bukti-btn">Lihat Bukti</a>',
+                    url
+                )
+            else:
+                return format_html(
+                    '<a href="{}" target="_blank" class="btn btn-sm btn-info bukti-btn">Download Bukti</a>',
+                    url
+                )
+        return "Tidak ada"
+    bukti_bayar_link.short_description = "Bukti Bayar"
+    
+    # Custom actions for bulk status changes
+    def ubah_status_diproses(self, request, queryset):
+        updated_count = queryset.update(status_transaksi='DIPROSES')
+        self.message_user(request, f"{updated_count} transaksi berhasil diubah statusnya menjadi Diproses.")
+    ubah_status_diproses.short_description = "Ubah status menjadi Diproses"
+    
+    def ubah_status_dibayar(self, request, queryset):
+        updated_count = queryset.update(status_transaksi='DIBAYAR')
+        self.message_user(request, f"{updated_count} transaksi berhasil diubah statusnya menjadi Dibayar.")
+    ubah_status_dibayar.short_description = "Ubah status menjadi Dibayar"
+    
+    def ubah_status_dikirim(self, request, queryset):
+        updated_count = queryset.update(status_transaksi='DIKIRIM')
+        self.message_user(request, f"{updated_count} transaksi berhasil diubah statusnya menjadi Dikirim.")
+    ubah_status_dikirim.short_description = "Ubah status menjadi Dikirim"
+    
+    def ubah_status_dibatalkan(self, request, queryset):
+        updated_count = queryset.update(status_transaksi='DIBATALKAN')
+        self.message_user(request, f"{updated_count} transaksi berhasil diubah statusnya menjadi Dibatalkan.")
+    ubah_status_dibatalkan.short_description = "Ubah status menjadi Dibatalkan"
     
     def save_related(self, request, form, formsets, change):
         obj = form.instance

@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}
+    Form Pembayaran
+{% endblock %}
+
+{% block content %}
+<section class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4 text-center fw-bold" style="color: #059212;">Form Pembayaran</h2>
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card card-custom">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Informasi Pembayaran</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'proses_pembayaran' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.bukti_bayar.id_for_label }}" class="form-label fw-bold">Bukti Pembayaran</label>
+                            {{ form.bukti_bayar }}
+                            <div class="form-text">Silakan unggah bukti pembayaran Anda (format: JPG, PNG, PDF)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.catatan.id_for_label }}" class="form-label fw-bold">Catatan (Opsional)</label>
+                            {{ form.catatan }}
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-paper-plane me-2"></i>Kirim Pembayaran
+                            </button>
+                            <a href="{% url 'keranjang' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Kembali ke Keranjang
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card card-custom">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Ringkasan Pesanan</h5>
+                </div>
+                <div class="card-body">
+                    {% if produk_di_keranjang %}
+                        <ul class="list-group mb-3">
+                            {% for item in produk_di_keranjang %}
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <h6 class="my-0">{{ item.produk.nama_produk }}</h6>
+                                        <small class="text-muted">Jumlah: {{ item.jumlah|intcomma }}</small>
+                                    </div>
+                                    <span class="fw-bold" style="color: #059212;">
+                                        Rp {{ item.sub_total|intcomma }}
+                                    </span>
+                                </div>
+                                <!-- Discount information for this product -->
+                                {% if item.diskon %}
+                                <div class="d-flex justify-content-between small">
+                                    <span>Harga asli:</span>
+                                    <span>Rp {{ item.harga_asli|intcomma }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between small">
+                                    <span>Diskon ({{ item.diskon.persen_diskon }}%):</span>
+                                    <span>-Rp {{ item.potongan_harga|intcomma }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between small fw-bold">
+                                    <span>Harga setelah diskon:</span>
+                                    <span>Rp {{ item.harga_setelah_diskon|intcomma }}</span>
+                                </div>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        <div class="d-flex justify-content-between fw-bold fs-5">
+                            <span>Total:</span>
+                            <span style="color: #059212;">Rp {{ total_belanja|intcomma }}</span>
+                        </div>
+                        <!-- Show discount summary if applicable -->
+                        {% if total_diskon > 0 %}
+                        <div class="d-flex justify-content-between small mt-2">
+                            <span>Total sebelum diskon:</span>
+                            <span>Rp {{ total_sebelum_diskon|intcomma }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between small">
+                            <span>Total diskon:</span>
+                            <span>-Rp {{ total_diskon|intcomma }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between fw-bold fs-5 mt-2">
+                            <span>Total setelah diskon:</span>
+                            <span style="color: #059212;">Rp {{ total_setelah_diskon|intcomma }}</span>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-center text-muted">Tidak ada item dalam pesanan</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card card-custom mt-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Instruksi Pembayaran</h5>
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li>Transfer ke rekening: <strong>123-456-7890</strong> (Bank BCA)</li>
+                        <li>Atas nama: <strong>UD. Barokah Jaya Beton</strong></li>
+                        <li>Upload bukti transfer di form di samping</li>
+                        <li>Tunggu konfirmasi dari admin</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-control {
+        border-radius: 10px;
+        padding: 12px 15px;
+        border: 2px solid #CCCCCC;
+        background-color: #FFFFFF;
+        color: #000000;
+        transition: all 0.3s ease;
+    }
+    .form-control:focus {
+        border-color: #059212;
+        box-shadow: 0 0 0 0.25rem rgba(5, 146, 18, 0.25);
+        background-color: #FFFFFF;
+    }
+    .form-label {
+        font-weight: 500;
+        color: #000000;
+    }
+    .alert {
+        border-radius: 10px;
+    }
+</style>
+{% endblock %}
