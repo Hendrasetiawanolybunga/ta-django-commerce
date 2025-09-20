@@ -1,0 +1,140 @@
+{% load static %}
+{% load humanize %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produk Kami | UD. Barokah Jaya Beton</title>
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts - Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #ECFFE6;
+            padding-top: 70px;
+            color: #000000;
+        }
+        .navbar-custom {
+            background: linear-gradient(to right, #056a0d, #059212); /* Darker, more elegant green */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            font-weight: 700;
+            color: #ECFFE6 !important;
+            font-size: 1.2rem;
+        }
+        .nav-link {
+            color: #ECFFE6 !important;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .nav-link:hover {
+            color: #000000 !important;
+            transform: translateY(-2px);
+        }
+        .card-custom {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background-color: #FFFFFF;
+        }
+        .card-custom:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        .btn-custom {
+            background-color: #059212;
+            border-color: #059212;
+            color: #ECFFE6;
+        }
+        .btn-custom:hover {
+            background-color: #000000;
+            border-color: #000000;
+            color: #ECFFE6;
+        }
+        .product-title {
+            color: #059212;
+        }
+        .product-price {
+            color: #059212;
+        }
+        /* Mobile responsive adjustments */
+        @media (max-width: 767px) {
+            .product-title {
+                font-size: 1.1rem;
+            }
+            .product-description {
+                font-size: 0.9rem;
+            }
+            .product-price {
+                font-size: 1rem;
+            }
+            .btn {
+                font-size: 0.85rem;
+                padding: 0.375rem 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar_public.html' %}
+
+    <section class="container my-5">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mb-4 text-center fw-bold" style="color: #059212;">Daftar Produk Kami</h2>
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            {% for p in produk %}
+            <div class="col-md-4 col-sm-6">
+                <div class="card card-custom h-100 position-relative">
+                    <!-- Discount badge positioned at top right corner of the image -->
+                    {% if p.diskon_aktif %}
+                    <div class="position-absolute top-0 end-0 m-2">
+                        <span class="badge bg-danger fs-6">
+                            <i class="fas fa-tags me-1"></i>Diskon {{ p.diskon_aktif.persen_diskon }}%
+                        </span>
+                    </div>
+                    {% endif %}
+                    <img src="{{ p.foto_produk.url }}" class="card-img-top" alt="{{ p.nama_produk }}" style="height: 200px; object-fit: cover;">
+                    <div class="card-body">
+                        <h5 class="card-title product-title">{{ p.nama_produk }}</h5>
+                        <p class="card-text product-description">{{ p.deskripsi_produk|truncatewords:20 }}</p>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="fw-bold product-price">Rp {{ p.harga_produk|intcomma }}</span>
+                            <small class="text-muted">Stok: {{ p.stok_produk|intcomma }}</small>
+                        </div>
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Silakan <a href="{% url 'login_pelanggan' %}" class="alert-link">login</a> untuk memesan produk ini.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {% include 'footer.html' %}
+
+    <!-- Bootstrap 5.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

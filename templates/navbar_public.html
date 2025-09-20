@@ -1,24 +1,27 @@
 {% load static %}
-<nav class="navbar navbar-expand-lg" style="background-color: #059212;">
+<nav class="navbar navbar-expand-lg navbar-custom-public">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="{% url 'beranda_umum' %}" style="color: #ECFFE6;">
+        <a class="navbar-brand fw-bold" href="{% url 'beranda_umum' %}">
             <i class="fas fa-store me-2"></i>UD. Barokah Jaya Beton
         </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavPublic" 
                 aria-controls="navbarNavPublic" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon" style="color: #ECFFE6;"></span>
+            <span class="navbar-toggler-icon"></span>
         </button>
 
         <div class="collapse navbar-collapse" id="navbarNavPublic">
+          
+            
+            <!-- Right-aligned items -->
             <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                 <li class="nav-item me-2">
-                    <a class="nav-link btn" style="background-color: #ECFFE6; color: #059212;" href="{% url 'login_pelanggan' %}">
+                    <a class="nav-link btn btn-login" href="{% url 'login_pelanggan' %}">
                         <i class="fas fa-sign-in-alt me-1"></i>Login
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link btn" style="background-color: #000000; color: #ECFFE6;" href="{% url 'register_pelanggan' %}">
+                    <a class="nav-link btn btn-register" href="{% url 'register_pelanggan' %}">
                         <i class="fas fa-user-plus me-1"></i>Daftar
                     </a>
                 </li>
@@ -26,3 +29,144 @@
         </div>
     </div>
 </nav>
+
+<style>
+    .navbar-custom-public {
+        background: linear-gradient(to right, #056a0d, #059212); /* Darker, more elegant green */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 0.5rem 0;
+        transition: all 0.3s ease;
+    }
+    
+    .navbar-brand {
+        color: #FFFFFF !important;
+        font-weight: 700;
+        font-size: 1.2rem;
+    }
+    
+    .navbar-brand:hover {
+        color: #ECFFE6 !important;
+    }
+    
+    .nav-link {
+        color: #FFFFFF !important;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        position: relative;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        margin: 0 0.25rem;
+    }
+    
+    .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: #FFFFFF !important;
+        transform: translateY(-2px);
+    }
+    
+    .btn-login {
+        background-color: #059212;
+        border: 2px solid #059212;
+        color: #FFFFFF !important;
+        border-radius: 30px;
+        padding: 0.375rem 1.25rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-login:hover {
+        background-color: #047a0f;
+        border-color: #047a0f;
+        color: #FFFFFF !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .btn-register {
+        background-color: transparent;
+        border: 2px solid #FFFFFF;
+        color: #FFFFFF !important;
+        border-radius: 30px;
+        padding: 0.375rem 1.25rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-register:hover {
+        background-color: #FFFFFF;
+        color: #059212 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .cart-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background-color: #dc3545; /* Red background */
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 0.7rem;
+        min-width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    /* Center navigation */
+    .navbar-nav-centered {
+        display: flex;
+        justify-content: center;
+        flex-grow: 1;
+    }
+    
+    /* Mobile responsive adjustments */
+    @media (max-width: 991px) {
+        .navbar-nav-centered {
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .navbar-nav-centered .nav-link {
+            padding: 0.5rem 1rem;
+            margin: 0.25rem 0;
+        }
+        
+        .nav-item {
+            margin: 0.25rem 0;
+        }
+        
+        .btn-login, .btn-register {
+            width: 100%;
+            text-align: center;
+            margin: 0.25rem 0;
+        }
+    }
+    
+    @media (max-width: 767px) {
+        .navbar-brand {
+            font-size: 1.1rem;
+        }
+        
+        .nav-link {
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+        }
+        
+        .btn-login, .btn-register {
+            font-size: 0.9rem;
+            padding: 0.3rem 1rem;
+        }
+        
+        .cart-badge {
+            font-size: 0.6rem;
+            min-width: 16px;
+            height: 16px;
+            top: -6px;
+            right: -6px;
+        }
+    }
+</style>

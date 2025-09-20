@@ -84,7 +84,7 @@ class PelangganAdmin(BaseModelAdmin):
         
         if is_loyal and is_ultah:
             return format_html(
-                '<a class="button" href="{}">Set Diskon</a>',
+                '<a class="button btn-success p-2 text-white rounded" href="{}">Set Diskon</a>',
                 reverse('admin:admin_dashboard_setdiskon', args=[obj.pk])
             )
         return ""
@@ -169,11 +169,20 @@ class DetailTransaksiInline(admin.TabularInline):
 # --- Pendaftaran Transaksi dengan Inline dan Logika Stok/Total ---
 @admin.register(Transaksi)
 class TransaksiAdmin(BaseModelAdmin):
-    list_display = ['pelanggan', 'tanggal', 'total', 'status_transaksi_interactive', 'bukti_bayar_link', 'get_actions_links']
+    list_display = ['pelanggan', 'tanggal', 'total', 'alamat_pengiriman_display', 'status_transaksi_interactive', 'bukti_bayar_link', 'get_actions_links']
     list_filter = ['status_transaksi', 'tanggal']
     search_fields = ['pelanggan__nama_pelanggan']
     inlines = [DetailTransaksiInline]
     actions = ['ubah_status_diproses', 'ubah_status_dibayar', 'ubah_status_dikirim', 'ubah_status_dibatalkan']
+    
+    def alamat_pengiriman_display(self, obj):
+        if obj.alamat_pengiriman:
+            # Truncate long addresses for display
+            if len(obj.alamat_pengiriman) > 50:
+                return f"{obj.alamat_pengiriman[:50]}..."
+            return obj.alamat_pengiriman
+        return "Alamat default pelanggan"
+    alamat_pengiriman_display.short_description = "Alamat Pengiriman"
     
     def status_transaksi_interactive(self, obj):
         # Display status as plain text instead of dropdown

@@ -11,14 +11,6 @@
     <div class="row">
         <div class="col-12">
             <h2 class="mb-4 text-center fw-bold" style="color: #059212;">Daftar Produk Kami</h2>
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
         </div>
     </div>
     
@@ -37,20 +29,23 @@
                 <img src="{{ p.foto_produk.url }}" class="card-img-top" alt="{{ p.nama_produk }}" style="height: 200px; object-fit: cover;">
                 <div class="card-body">
                     <h5 class="card-title product-title">{{ p.nama_produk }}</h5>
-                    <p class="card-text product-description">{{ p.deskripsi_produk|truncatewords:20 }}</p>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <p class="card-text product-description">{{ p.deskripsi_produk|truncatewords:10 }}</p>
+                  
+                </div>
+                <div class="card-footer pd-3">
+                      <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="fw-bold product-price" style="color: #059212;">Rp {{ p.harga_produk|intcomma }}</span>
                         <small class="text-muted">Stok: {{ p.stok_produk|intcomma }}</small>
                     </div>
                     <div class="d-flex gap-2 mb-2">
-                        <button type="button" class="btn btn-custom flex-fill" data-bs-toggle="modal" data-bs-target="#detailModal{{ p.id }}" title="Detail Produk">
+                        <button type="button" class="btn btn-sm btn-custom flex-fill" data-bs-toggle="modal" data-bs-target="#detailModal{{ p.id }}" title="Detail Produk">
                             <i class="fas fa-eye"></i>
                             <span class="d-none d-md-inline ms-1">Detail</span>
                         </button>
                         <form action="{% url 'tambah_ke_keranjang' p.id %}" method="post" class="d-inline flex-fill">
                             {% csrf_token %}
                             <input type="hidden" name="jumlah" value="1">
-                            <button type="submit" class="btn btn-outline-success w-100" title="Tambah ke Keranjang">
+                            <button type="submit" class="btn btn-sm btn-outline-success w-100" title="Tambah ke Keranjang">
                                 <i class="fas fa-cart-plus"></i>
                                 <span class="d-none d-md-inline ms-1">Keranjang</span>
                             </button>
@@ -59,7 +54,7 @@
                     <form action="{% url 'checkout_langsung' p.id %}" method="post" class="d-inline">
                         {% csrf_token %}
                         <input type="hidden" name="jumlah" value="1">
-                        <button type="submit" class="btn btn-success btn-sm w-100">
+                        <button type="submit" class="btn btn-sm btn-success btn-sm w-100">
                             <i class="fas fa-bolt me-1"></i>Checkout Langsung
                         </button>
                     </form>

@@ -131,6 +131,32 @@ def produk_list(request):
     }
     return render(request, 'product_list.html', context)
 
+def produk_list_public(request):
+    produk = Produk.objects.all()
+    
+    # Add discount information to each product (for display purposes only)
+    for p in produk:
+        # Check for any active discount (no customer-specific filtering for public view)
+        diskon_produk = DiskonPelanggan.objects.filter(
+            produk=p,
+            status='aktif'
+        ).first()
+        
+        # If no product-specific discount, check for general discount
+        if not diskon_produk:
+            diskon_produk = DiskonPelanggan.objects.filter(
+                produk__isnull=True,  # General discount
+                status='aktif'
+            ).first()
+        
+        # Attach discount info to product object
+        p.diskon_aktif = diskon_produk
+    
+    context = {
+        'produk': produk
+    }
+    return render(request, 'product_list_public.html', context)
+
 @login_required_pelanggan
 def keranjang(request):
     keranjang_belanja = request.session.get('keranjang', {})
@@ -332,12 +358,18 @@ def proses_pembayaran(request):
 
             try:
                 with transaction.atomic():
+                    # Get the shipping address from the form or use customer's default address
+                    alamat_pengiriman = request.POST.get('alamat_pengiriman', '').strip()
+                    if not alamat_pengiriman:
+                        alamat_pengiriman = pelanggan.alamat
+                    
                     transaksi = Transaksi.objects.create(
                         pelanggan=pelanggan,
                         tanggal=timezone.now(),
                         total=0,
                         bukti_bayar=request.FILES.get('bukti_bayar'),
-                        status_transaksi='DIPROSES'
+                        status_transaksi='DIPROSES',
+                        alamat_pengiriman=alamat_pengiriman
                     )
                     
                     detail_list = []  # To store details for later use
@@ -433,6 +465,7 @@ def proses_pembayaran(request):
     produk_di_keranjang = []
     
     pelanggan_id = request.session.get('pelanggan_id')
+    pelanggan = get_object_or_404(Pelanggan, pk=pelanggan_id)
     
     for produk_id_str, jumlah in keranjang_belanja.items():
         produk_id = int(produk_id_str)
@@ -486,7 +519,8 @@ def proses_pembayaran(request):
         'total_belanja': total_belanja,
         'total_sebelum_diskon': total_sebelum_diskon,
         'total_diskon': total_diskon,
-        'total_setelah_diskon': total_sebelum_diskon - total_diskon
+        'total_setelah_diskon': total_sebelum_diskon - total_diskon,
+        'alamat_default': pelanggan.alamat
     }
     return render(request, 'payment_form.html', context)
 
@@ -613,5 +647,16 @@ def get_notification_count(pelanggan_id):
             pelanggan_id=pelanggan_id,
             is_read=False
         ).count()
+    except Exception:
+        return 0
+
+# Add this helper function to get cart item count
+def get_cart_item_count(request):
+    """
+    Get the count of items in the cart
+    """
+    try:
+        keranjang = request.session.get('keranjang', {})
+        return sum(keranjang.values())
     except Exception:
         return 0

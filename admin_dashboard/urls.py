@@ -8,6 +8,7 @@ urlpatterns = [
     path('register/', views.register_pelanggan, name='register_pelanggan'),
     path('login/', views.login_pelanggan, name='login_pelanggan'),
     path('logout/', views.logout_pelanggan, name='logout_pelanggan'),
+    path('produk/public/', views.produk_list_public, name='produk_list_public'),
 
     # URLs untuk pelanggan yang sudah login
     path('dashboard/', views.dashboard_pelanggan, name='dashboard_pelanggan'),

@@ -66,6 +66,7 @@ class Transaksi(models.Model):
     )
     bukti_bayar = models.FileField(upload_to='bukti_pembayaran/', verbose_name="Bukti Pembayaran", null=True, blank=True)
     pelanggan = models.ForeignKey(Pelanggan, on_delete=models.CASCADE, verbose_name="Pelanggan")
+    alamat_pengiriman = models.TextField(verbose_name="Alamat Pengiriman", blank=True, null=True)
 
     class Meta:
         verbose_name_plural = "Transaksi"

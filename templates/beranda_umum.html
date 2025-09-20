@@ -17,33 +17,40 @@
         body {
             font-family: 'Poppins', sans-serif;
             background-color: #ECFFE6;
-            padding-top: 0; /* Remove default padding to eliminate gap */
+            padding-top: 0;
         }
         .hero-section {
-            background: linear-gradient(rgba(5, 146, 18, 0.7), rgba(5, 146, 18, 0.7)), url('{% static "images/hero-image.jpeg" %}') no-repeat center center;
+            background: linear-gradient(rgba(30, 80, 40, 0.6), rgba(30, 80, 40, 0.6)), url('{% static "images/hero-image.jpeg" %}') no-repeat center center;
             background-size: cover;
             padding: 100px 0;
             color: white;
-            margin-top: 0; /* Remove margin to eliminate gap */
+            margin-top: 0;
         }
         .hero-title {
-            color: #ECFFE6;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            color: #FFFFFF;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
         .hero-description {
             font-size: 1.2rem;
             max-width: 800px;
             margin: 0 auto 2rem;
+            color: #F0F8F0;
         }
         .btn-hero {
             border-radius: 30px;
             padding: 12px 30px;
             font-weight: 600;
             transition: all 0.3s ease;
+            background-color: #059212;
+            border-color: #059212;
+            color: #ECFFE6;
         }
         .btn-hero:hover {
             transform: translateY(-3px);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            background-color: #000000;
+            border-color: #000000;
+            color: #ECFFE6;
         }
         .product-card {
             border-radius: 15px;
@@ -153,6 +160,8 @@
         @media (max-width: 768px) {
             .hero-section {
                 padding: 60px 0;
+                background: linear-gradient(rgba(30, 80, 40, 0.7), rgba(30, 80, 40, 0.7)), url('{% static "images/hero-image.jpeg" %}') no-repeat center center;
+                background-size: cover;
             }
             .hero-title {
                 font-size: 2rem;
@@ -175,10 +184,20 @@
             .section-title {
                 font-size: 1.5rem;
             }
+            .btn-hero {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
         }
         @media (max-width: 576px) {
+            .hero-section {
+                padding: 40px 0;
+            }
             .hero-title {
                 font-size: 1.5rem;
+            }
+            .hero-description {
+                font-size: 0.9rem;
             }
             .gallery-img {
                 height: 150px;
@@ -202,10 +221,10 @@
                     <h1 class="display-4 fw-bold mb-4 hero-title">Selamat Datang di UD. Barokah Jaya Beton</h1>
                     <p class="lead mb-4 hero-description">Temukan produk berkualitas tinggi dengan harga terjangkau. Belanja mudah, aman, dan terpercaya hanya di UD. Barokah Jaya Beton.</p>
                     <div class="d-grid gap-3 d-md-flex justify-content-md-center">
-                        <a href="{% url 'login_pelanggan' %}" class="btn btn-hero btn-outline-light px-4 me-md-3">
+                        <a href="{% url 'login_pelanggan' %}" class="btn btn-hero px-4 me-md-3">
                             <i class="fas fa-sign-in-alt me-2"></i>Login Pelanggan
                         </a>
-                        <a href="{% url 'register_pelanggan' %}" class="btn btn-hero btn-light text-success px-4">
+                        <a href="{% url 'register_pelanggan' %}" class="btn btn-hero px-4">
                             <i class="fas fa-user-plus me-2"></i>Daftar Sekarang
                         </a>
                     </div>
