@@ -90,6 +90,22 @@
         <div class="row">
             <div class="col-12">
                 <h2 class="mb-4 text-center fw-bold" style="color: #059212;">Daftar Produk Kami</h2>
+                
+                <!-- Category Filter -->
+                <div class="mb-4">
+                    <h5 class="mb-3">Filter berdasarkan Kategori:</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{% url 'produk_list_public' %}" class="btn btn-outline-secondary {% if not kategori_terpilih %}active{% endif %}">
+                            Semua Produk
+                        </a>
+                        {% for kategori in kategori_list %}
+                            <a href="?kategori={{ kategori.id }}" class="btn btn-outline-success {% if kategori.id|stringformat:'s' == kategori_terpilih %}active{% endif %}">
+                                {{ kategori.nama_kategori }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                
                 {% if messages %}
                     {% for message in messages %}
                         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -116,6 +132,9 @@
                     <img src="{{ p.foto_produk.url }}" class="card-img-top" alt="{{ p.nama_produk }}" style="height: 200px; object-fit: cover;">
                     <div class="card-body">
                         <h5 class="card-title product-title">{{ p.nama_produk }}</h5>
+                        {% if p.kategori %}
+                            <span class="badge bg-secondary mb-2">{{ p.kategori.nama_kategori }}</span>
+                        {% endif %}
                         <p class="card-text product-description">{{ p.deskripsi_produk|truncatewords:20 }}</p>
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <span class="fw-bold product-price">Rp {{ p.harga_produk|intcomma }}</span>

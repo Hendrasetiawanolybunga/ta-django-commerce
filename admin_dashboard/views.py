@@ -145,7 +145,17 @@ def produk_list(request):
     return render(request, 'product_list.html', context)
 
 def produk_list_public(request):
-    produk = Produk.objects.all()
+    # Get all categories for the filter UI
+    kategori_list = Kategori.objects.all()
+    
+    # Get the selected category from the request
+    kategori_id = request.GET.get('kategori')
+    
+    # Filter products by category if specified
+    if kategori_id:
+        produk = Produk.objects.filter(kategori_id=kategori_id)
+    else:
+        produk = Produk.objects.all()
     
     # Add discount information to each product (for display purposes only)
     for p in produk:
@@ -166,7 +176,9 @@ def produk_list_public(request):
         p.diskon_aktif = diskon_produk
     
     context = {
-        'produk': produk
+        'produk': produk,
+        'kategori_list': kategori_list,
+        'kategori_terpilih': kategori_id
     }
     return render(request, 'product_list_public.html', context)
 

@@ -137,7 +137,7 @@ class Notifikasi(models.Model):
     pelanggan = models.ForeignKey(Pelanggan, on_delete=models.CASCADE, verbose_name="Pelanggan")
     tipe_pesan = models.CharField(max_length=50, verbose_name="Tipe Pesan")
     isi_pesan = models.TextField(verbose_name="Isi Pesan")
-    is_read = models.BooleanField(default=models.BooleanField().default, verbose_name="Sudah Dibaca")
+    is_read = models.BooleanField(default=False, verbose_name="Sudah Dibaca")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Waktu Dibuat")
 
     class Meta:
