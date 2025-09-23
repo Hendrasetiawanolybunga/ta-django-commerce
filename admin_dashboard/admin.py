@@ -54,7 +54,12 @@ class PelangganAdmin(BaseModelAdmin):
     actions = ['laporan_pelanggan_loyal']
     
     def total_belanja_admin(self, obj):
-        return "Rp 0"
+        # Calculate total spending for "DIBAYAR" transactions
+        total_spending = obj.transaksi_set.filter(status_transaksi='DIBAYAR').aggregate(
+            total_belanja=Sum('total')
+        )['total_belanja'] or 0
+        
+        return f"Rp {total_spending:,.0f}"
 
     def is_ultah(self, obj):
         today = date.today()
@@ -64,7 +69,12 @@ class PelangganAdmin(BaseModelAdmin):
 
     def set_diskon_button(self, obj):
         today = date.today()
-        is_loyal = False
+        # Calculate total spending for "DIBAYAR" transactions
+        total_spending = obj.transaksi_set.filter(status_transaksi='DIBAYAR').aggregate(
+            total_belanja=Sum('total')
+        )['total_belanja'] or 0
+        
+        is_loyal = total_spending > 5000000
         is_ultah = obj.tanggal_lahir and obj.tanggal_lahir.month == today.month and obj.tanggal_lahir.day == today.day
         
         if is_loyal and is_ultah:
@@ -73,7 +83,7 @@ class PelangganAdmin(BaseModelAdmin):
                 reverse('admin:admin_dashboard_setdiskon', args=[obj.pk])
             )
         return ""
-
+    
     def process_set_diskon(self, request, pelanggan_id):
         pelanggan = self.get_object(request, pelanggan_id)
         if not pelanggan:
@@ -81,7 +91,37 @@ class PelangganAdmin(BaseModelAdmin):
             return redirect("admin:admin_dashboard_pelanggan_changelist")
 
         today = date.today()
-        messages.info(request, "Fitur diskon dinonaktifkan.")
+        # Calculate total spending for "DIBAYAR" transactions
+        total_spending = pelanggan.transaksi_set.filter(status_transaksi='DIBAYAR').aggregate(
+            total_belanja=Sum('total')
+        )['total_belanja'] or 0
+        
+        is_loyal = total_spending > 5000000
+        is_ultah = pelanggan.tanggal_lahir and pelanggan.tanggal_lahir.month == today.month and pelanggan.tanggal_lahir.day == today.day
+        
+        if is_loyal and is_ultah:
+            # Create or update discount for the customer
+            diskon, created = DiskonPelanggan.objects.get_or_create(
+                pelanggan=pelanggan,
+                produk=None,  # General discount (not product-specific)
+                defaults={
+                    'persen_diskon': 10,  # 10% discount
+                    'status': 'aktif',
+                    'pesan': f'Diskon ulang tahun untuk pelanggan loyal {pelanggan.nama_pelanggan}'
+                }
+            )
+            
+            if not created:
+                # Update existing discount
+                diskon.persen_diskon = 10
+                diskon.status = 'aktif'
+                diskon.pesan = f'Diskon ulang tahun diperbarui untuk pelanggan loyal {pelanggan.nama_pelanggan}'
+                diskon.save()
+            
+            messages.success(request, f"Diskon 10% berhasil diterapkan untuk {pelanggan.nama_pelanggan}.")
+        else:
+            messages.error(request, f"{pelanggan.nama_pelanggan} tidak memenuhi syarat untuk diskon ulang tahun.")
+        
         return redirect("admin:admin_dashboard_pelanggan_changelist")
     
     def get_urls(self):
