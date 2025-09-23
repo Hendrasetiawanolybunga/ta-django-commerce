@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.db import transaction
 from .forms import PelangganRegistrationForm, PelangganLoginForm, PelangganEditForm, PembayaranForm
-from .models import Produk, Pelanggan, Transaksi, DetailTransaksi, Notifikasi, DiskonPelanggan
+from .models import Produk, Pelanggan, Transaksi, DetailTransaksi, Notifikasi, DiskonPelanggan, Kategori
 from django.db.models import Sum
 import os
 from django.conf import settings
@@ -99,7 +99,18 @@ def dashboard_pelanggan(request):
 
 @login_required_pelanggan
 def produk_list(request):
-    produk = Produk.objects.all()
+    # Get all categories for the filter UI
+    kategori_list = Kategori.objects.all()
+    
+    # Get the selected category from the request
+    kategori_id = request.GET.get('kategori')
+    
+    # Filter products by category if specified
+    if kategori_id:
+        produk = Produk.objects.filter(kategori_id=kategori_id)
+    else:
+        produk = Produk.objects.all()
+        
     pelanggan_id = request.session.get('pelanggan_id')
     
     # Add discount information to each product
@@ -127,6 +138,8 @@ def produk_list(request):
     
     context = {
         'produk': produk,
+        'kategori_list': kategori_list,
+        'kategori_terpilih': kategori_id,
         'notifikasi_count': notifikasi_count
     }
     return render(request, 'product_list.html', context)

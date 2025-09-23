@@ -7,7 +7,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     # Rute ke dashboard admin Django bawaan
     path('admin/', admin.site.urls),
-
+    
     # Rute ke beranda umum yang menampilkan beranda_umum.html
     path('', TemplateView.as_view(template_name='beranda_umum.html'), name='home'),
 

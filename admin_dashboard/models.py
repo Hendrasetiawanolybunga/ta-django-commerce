@@ -9,7 +9,7 @@ class Admin(AbstractUser):
     # Karena kita ingin memisahkan auth admin dan pelanggan, kita akan gunakan model ini
     # sebagai pengganti model User bawaan Django untuk keperluan admin.
 
-    class Meta:
+    class Meta(AbstractUser.Meta):
         verbose_name_plural = "Admin"
         db_table = 'admin' # Nama tabel di database
 
@@ -29,7 +29,18 @@ class Pelanggan(models.Model):
         db_table = 'pelanggan'
 
     def __str__(self):
-        return self.nama_pelanggan
+        return str(self.nama_pelanggan)
+
+# Model Kategori
+class Kategori(models.Model):
+    nama_kategori = models.CharField(max_length=255, verbose_name="Nama Kategori")
+
+    class Meta:
+        verbose_name_plural = "Kategori"
+        db_table = 'kategori'
+
+    def __str__(self):
+        return str(self.nama_kategori)
 
 # Model Produk
 class Produk(models.Model):
@@ -38,13 +49,14 @@ class Produk(models.Model):
     foto_produk = models.ImageField(upload_to='produk_images/', verbose_name="Foto Produk")
     stok_produk = models.IntegerField(verbose_name="Stok Produk")
     harga_produk = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Harga Produk")
+    kategori = models.ForeignKey(Kategori, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="Kategori")
 
     class Meta:
         verbose_name_plural = "Produk"
         db_table = 'produk'
 
     def __str__(self):
-        return self.nama_produk
+        return str(self.nama_produk)
 
 # --- Pilihan (Choices) untuk model Transaksi ---
 STATUS_TRANSAKSI_CHOICES = [
@@ -56,6 +68,7 @@ STATUS_TRANSAKSI_CHOICES = [
 
 # Model Transaksi
 class Transaksi(models.Model):
+    id = models.AutoField(primary_key=True)
     tanggal = models.DateTimeField(auto_now_add=True, verbose_name="Tanggal Transaksi")
     total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total", blank=True, null=True)
     status_transaksi = models.CharField(
@@ -73,7 +86,8 @@ class Transaksi(models.Model):
         db_table = 'transaksi'
 
     def __str__(self):
-        return f"Transaksi #{self.id} oleh {self.pelanggan.nama_pelanggan}"
+        pelanggan_nama = getattr(self.pelanggan, 'nama_pelanggan', 'Pelanggan')
+        return f"Transaksi #{self.id} oleh {pelanggan_nama}"
 
 # Model DetailTransaksi
 class DetailTransaksi(models.Model):
@@ -87,7 +101,8 @@ class DetailTransaksi(models.Model):
         db_table = 'detail_transaksi'
 
     def __str__(self):
-        return f"{self.jumlah_produk}x {self.produk.nama_produk}"
+        produk_nama = getattr(self.produk, 'nama_produk', 'Produk')
+        return f"{self.jumlah_produk}x {produk_nama}"
 
 # --- Pilihan (Choices) untuk model DiskonPelanggan ---
 STATUS_DISKON_CHOICES = [
@@ -114,14 +129,15 @@ class DiskonPelanggan(models.Model):
         db_table = 'diskon_pelanggan'
 
     def __str__(self):
-        return f"Diskon {self.persen_diskon}% untuk {self.pelanggan.nama_pelanggan}"
+        pelanggan_nama = getattr(self.pelanggan, 'nama_pelanggan', 'Pelanggan')
+        return f"Diskon {self.persen_diskon}% untuk {pelanggan_nama}"
 
 # Model Notifikasi
 class Notifikasi(models.Model):
     pelanggan = models.ForeignKey(Pelanggan, on_delete=models.CASCADE, verbose_name="Pelanggan")
     tipe_pesan = models.CharField(max_length=50, verbose_name="Tipe Pesan")
     isi_pesan = models.TextField(verbose_name="Isi Pesan")
-    is_read = models.BooleanField(default=False, verbose_name="Sudah Dibaca")
+    is_read = models.BooleanField(default=models.BooleanField().default, verbose_name="Sudah Dibaca")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Waktu Dibuat")
 
     class Meta:
@@ -129,4 +145,22 @@ class Notifikasi(models.Model):
         db_table = 'notifikasi'
     
     def __str__(self):
-        return f"Notifikasi untuk {self.pelanggan.nama_pelanggan}"
+        pelanggan_nama = getattr(self.pelanggan, 'nama_pelanggan', 'Pelanggan')
+        return f"Notifikasi untuk {pelanggan_nama}"
+
+# Model Ulasan
+class Ulasan(models.Model):
+    teks_ulasan = models.TextField(verbose_name="Teks Ulasan")
+    foto_ulasan = models.ImageField(upload_to='ulasan_images/', verbose_name="Foto Ulasan", null=True, blank=True)
+    tanggal_ulasan = models.DateTimeField(auto_now_add=True, verbose_name="Tanggal Ulasan")
+    transaksi = models.ForeignKey(Transaksi, on_delete=models.CASCADE, verbose_name="Transaksi")
+    produk = models.ForeignKey(Produk, on_delete=models.CASCADE, verbose_name="Produk")
+
+    class Meta:
+        verbose_name_plural = "Ulasan"
+        db_table = 'ulasan'
+    
+    def __str__(self):
+        produk_nama = getattr(self.produk, 'nama_produk', 'Produk')
+        transaksi_pelanggan_nama = getattr(getattr(self.transaksi, 'pelanggan', None), 'nama_pelanggan', 'Pelanggan')
+        return f"Ulasan untuk {produk_nama} oleh {transaksi_pelanggan_nama}"

@@ -9,21 +9,19 @@ from django.db import transaction as db_transaction
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import Admin, Pelanggan, Produk, Transaksi, DetailTransaksi, DiskonPelanggan, Notifikasi
+from .models import Admin, Pelanggan, Produk, Transaksi, DetailTransaksi, DiskonPelanggan, Notifikasi, Kategori, Ulasan
 
 # --- ModelAdmin Kustom untuk Tombol Aksi ---
 class BaseModelAdmin(admin.ModelAdmin):
     def get_actions_links(self, obj):
         links = []
         if obj:
-            edit_url = reverse(f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}_change', args=[obj.pk])
+            edit_url = reverse(f'admin:{obj._meta.app_label}_{obj._meta.model_name}_change', args=[obj.pk])
             links.append(f'<a href="{edit_url}" class="btn btn-sm btn-primary" title="Edit"><i class="fas fa-edit"></i></a>')
-            delete_url = reverse(f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}_delete', args=[obj.pk])
+            delete_url = reverse(f'admin:{obj._meta.app_label}_{obj._meta.model_name}_delete', args=[obj.pk])
             links.append(f'<a href="{delete_url}" class="btn btn-sm btn-danger" title="Hapus"><i class="fas fa-trash"></i></a>')
         return format_html('&nbsp;'.join(links))
 
-    get_actions_links.short_description = 'Aksi'
-    get_actions_links.allow_tags = True
     
 # --- Filter Kustom ---
 class IsLoyalFilter(admin.SimpleListFilter):
@@ -37,16 +35,6 @@ class IsLoyalFilter(admin.SimpleListFilter):
         )
 
     def queryset(self, request, queryset):
-        loyal_customers = Pelanggan.objects.filter(
-            transaksi__status_transaksi__in=['DIBAYAR', 'DIKIRIM']
-        ).annotate(
-            total=Sum('transaksi__total')
-        ).filter(total__gte=5000000)
-
-        if self.value() == 'yes':
-            return queryset.filter(id__in=loyal_customers.values('id'))
-        if self.value() == 'no':
-            return queryset.exclude(id__in=loyal_customers.values('id'))
         return queryset
 
 # Daftarkan model Admin
@@ -63,23 +51,20 @@ class PelangganAdmin(BaseModelAdmin):
     list_display = ['username', 'nama_pelanggan', 'no_hp', 'total_belanja_admin', 'is_ultah', 'set_diskon_button', 'get_actions_links']
     search_fields = ['username', 'nama_pelanggan', 'no_hp']
     list_filter = (IsLoyalFilter,)
-
+    actions = ['laporan_pelanggan_loyal']
+    
     def total_belanja_admin(self, obj):
-        total = obj.transaksi_set.filter(status_transaksi__in=['DIBAYAR', 'DIKIRIM']).aggregate(Sum('total'))['total__sum']
-        return f"Rp {total:,}" if total is not None else "Rp 0"
-    total_belanja_admin.short_description = "Total Belanja"
+        return "Rp 0"
 
     def is_ultah(self, obj):
         today = date.today()
         if obj.tanggal_lahir and obj.tanggal_lahir.month == today.month and obj.tanggal_lahir.day == today.day:
             return format_html('<span style="color: green; font-weight: bold;">&#10004; Ya</span>')
         return "-"
-    is_ultah.short_description = "Ulang Tahun"
 
     def set_diskon_button(self, obj):
         today = date.today()
-        total = obj.transaksi_set.filter(status_transaksi__in=['DIBAYAR', 'DIKIRIM']).aggregate(Sum('total'))['total__sum']
-        is_loyal = total is not None and total >= 5000000
+        is_loyal = False
         is_ultah = obj.tanggal_lahir and obj.tanggal_lahir.month == today.month and obj.tanggal_lahir.day == today.day
         
         if is_loyal and is_ultah:
@@ -88,7 +73,6 @@ class PelangganAdmin(BaseModelAdmin):
                 reverse('admin:admin_dashboard_setdiskon', args=[obj.pk])
             )
         return ""
-    set_diskon_button.short_description = "Aksi Diskon"
 
     def process_set_diskon(self, request, pelanggan_id):
         pelanggan = self.get_object(request, pelanggan_id)
@@ -97,21 +81,8 @@ class PelangganAdmin(BaseModelAdmin):
             return redirect("admin:admin_dashboard_pelanggan_changelist")
 
         today = date.today()
-        existing_diskon = DiskonPelanggan.objects.filter(pelanggan=pelanggan, tanggal_dibuat__date=today).first()
-        
-        if existing_diskon:
-            messages.info(request, f"Diskon untuk {pelanggan.nama_pelanggan} sudah dibuat. Mengarahkan ke halaman edit.")
-            return redirect("admin:admin_dashboard_diskonpelanggan_change", object_id=existing_diskon.pk)
-        else:
-            new_diskon = DiskonPelanggan.objects.create(
-                pelanggan=pelanggan,
-                produk=None,
-                persen_diskon=15, 
-                status='aktif',
-                pesan="Diskon spesial untuk pelanggan loyal di hari ulang tahun Anda!"
-            )
-            messages.success(request, f"Diskon berhasil dibuat untuk {pelanggan.nama_pelanggan}. Silakan sesuaikan persentase diskon.")
-            return redirect("admin:admin_dashboard_diskonpelanggan_change", object_id=new_diskon.pk)
+        messages.info(request, "Fitur diskon dinonaktifkan.")
+        return redirect("admin:admin_dashboard_pelanggan_changelist")
     
     def get_urls(self):
         urls = super().get_urls()
@@ -120,12 +91,23 @@ class PelangganAdmin(BaseModelAdmin):
         ]
         return custom_urls + urls
 
+    # Custom action for loyal customers report
+    def laporan_pelanggan_loyal(self, request, queryset):
+        self.message_user(request, "Laporan pelanggan loyal dinonaktifkan.")
+
+# Daftarkan model Kategori
+@admin.register(Kategori)
+class KategoriAdmin(BaseModelAdmin):
+    list_display = ['nama_kategori', 'get_actions_links']
+    search_fields = ['nama_kategori']
+
 # Daftarkan model Produk
 @admin.register(Produk)
 class ProdukAdmin(BaseModelAdmin):
-    list_display = ['nama_produk', 'harga_produk', 'stok_produk', 'get_actions_links']
+    list_display = ['nama_produk', 'kategori', 'harga_produk', 'stok_produk', 'get_actions_links']
     search_fields = ['nama_produk']
-    list_filter = ['stok_produk']
+    list_filter = ['kategori', 'stok_produk']
+    actions = ['laporan_produk_terlaris']
     
     def save_model(self, request, obj, form, change):
         # Check if this is a new product
@@ -136,7 +118,7 @@ class ProdukAdmin(BaseModelAdmin):
         if change:
             try:
                 old_obj = Produk.objects.get(pk=obj.pk)
-            except Produk.DoesNotExist:
+            except Exception:
                 is_new = True
         
         # Save the product
@@ -159,6 +141,10 @@ class ProdukAdmin(BaseModelAdmin):
                 f"Stok produk {obj.nama_produk} telah diperbarui. <a href='/produk/' class='alert-link'>Pesan sekarang!</a>"
             )
 
+    # Custom action for best-selling products report
+    def laporan_produk_terlaris(self, request, queryset):
+        self.message_user(request, "Laporan produk terlaris dinonaktifkan.")
+
 # --- Pendaftaran Inline untuk DetailTransaksi ---
 class DetailTransaksiInline(admin.TabularInline):
     model = DetailTransaksi
@@ -169,11 +155,11 @@ class DetailTransaksiInline(admin.TabularInline):
 # --- Pendaftaran Transaksi dengan Inline dan Logika Stok/Total ---
 @admin.register(Transaksi)
 class TransaksiAdmin(BaseModelAdmin):
-    list_display = ['pelanggan', 'tanggal', 'total', 'alamat_pengiriman_display', 'status_transaksi_interactive', 'bukti_bayar_link', 'get_actions_links']
+    list_display = ['id', 'pelanggan', 'tanggal', 'total', 'alamat_pengiriman_display', 'status_transaksi_interactive', 'bukti_bayar_link', 'get_actions_links']
     list_filter = ['status_transaksi', 'tanggal']
     search_fields = ['pelanggan__nama_pelanggan']
     inlines = [DetailTransaksiInline]
-    actions = ['ubah_status_diproses', 'ubah_status_dibayar', 'ubah_status_dikirim', 'ubah_status_dibatalkan']
+    actions = ['ubah_status_diproses', 'ubah_status_dibayar', 'ubah_status_dikirim', 'ubah_status_dibatalkan', 'laporan_total_pendapatan']
     
     def alamat_pengiriman_display(self, obj):
         if obj.alamat_pengiriman:
@@ -182,7 +168,6 @@ class TransaksiAdmin(BaseModelAdmin):
                 return f"{obj.alamat_pengiriman[:50]}..."
             return obj.alamat_pengiriman
         return "Alamat default pelanggan"
-    alamat_pengiriman_display.short_description = "Alamat Pengiriman"
     
     def status_transaksi_interactive(self, obj):
         # Display status as plain text instead of dropdown
@@ -211,8 +196,6 @@ class TransaksiAdmin(BaseModelAdmin):
             style,
             display_label
         )
-    status_transaksi_interactive.short_description = "Status Transaksi"
-    status_transaksi_interactive.allow_tags = True
     
     def bukti_bayar_link(self, obj):
         if obj.bukti_bayar:
@@ -229,28 +212,23 @@ class TransaksiAdmin(BaseModelAdmin):
                     url
                 )
         return "Tidak ada"
-    bukti_bayar_link.short_description = "Bukti Bayar"
     
     # Custom actions for bulk status changes
     def ubah_status_diproses(self, request, queryset):
         updated_count = queryset.update(status_transaksi='DIPROSES')
         self.message_user(request, f"{updated_count} transaksi berhasil diubah statusnya menjadi Diproses.")
-    ubah_status_diproses.short_description = "Ubah status menjadi Diproses"
     
     def ubah_status_dibayar(self, request, queryset):
         updated_count = queryset.update(status_transaksi='DIBAYAR')
         self.message_user(request, f"{updated_count} transaksi berhasil diubah statusnya menjadi Dibayar.")
-    ubah_status_dibayar.short_description = "Ubah status menjadi Dibayar"
     
     def ubah_status_dikirim(self, request, queryset):
         updated_count = queryset.update(status_transaksi='DIKIRIM')
         self.message_user(request, f"{updated_count} transaksi berhasil diubah statusnya menjadi Dikirim.")
-    ubah_status_dikirim.short_description = "Ubah status menjadi Dikirim"
     
     def ubah_status_dibatalkan(self, request, queryset):
         updated_count = queryset.update(status_transaksi='DIBATALKAN')
         self.message_user(request, f"{updated_count} transaksi berhasil diubah statusnya menjadi Dibatalkan.")
-    ubah_status_dibatalkan.short_description = "Ubah status menjadi Dibatalkan"
     
     def save_related(self, request, form, formsets, change):
         obj = form.instance
@@ -262,7 +240,7 @@ class TransaksiAdmin(BaseModelAdmin):
                 # Ambil objek lama dari database. Kita gunakan Prefetch untuk mendapatkan detail transaksi lama
                 old_obj = Transaksi.objects.prefetch_related('detailtransaksi_set').get(pk=obj.pk)
                 old_status = old_obj.status_transaksi
-            except Transaksi.DoesNotExist:
+            except Exception:
                 pass
         
         # Simpan objek terkait (DetailTransaksi)
@@ -296,6 +274,11 @@ class TransaksiAdmin(BaseModelAdmin):
                     produk.save(update_fields=['stok_produk'])
                     messages.success(request, f"Stok produk '{produk.nama_produk}' dikembalikan.")
 
+    # Custom action for total revenue report
+    def laporan_total_pendapatan(self, request, queryset):
+        total_pendapatan = queryset.aggregate(Sum('total'))['total__sum'] or 0
+        self.message_user(request, f"Total pendapatan dari {queryset.count()} transaksi terpilih: Rp {total_pendapatan:,.0f}")
+
 # Daftarkan model DiskonPelanggan
 @admin.register(DiskonPelanggan)
 class DiskonPelangganAdmin(BaseModelAdmin):
@@ -309,3 +292,10 @@ class NotifikasiAdmin(BaseModelAdmin):
     list_display = ['pelanggan', 'tipe_pesan', 'is_read', 'created_at', 'get_actions_links']
     search_fields = ['pelanggan__nama_pelanggan', 'tipe_pesan']
     list_filter = ['is_read', 'created_at']
+
+# Daftarkan model Ulasan
+@admin.register(Ulasan)
+class UlasanAdmin(BaseModelAdmin):
+    list_display = ['produk', 'transaksi', 'tanggal_ulasan', 'get_actions_links']
+    search_fields = ['produk__nama_produk', 'transaksi__pelanggan__nama_pelanggan']
+    list_filter = ['tanggal_ulasan']

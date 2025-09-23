@@ -28,6 +28,9 @@
                         <div class="col-md-6">
                             <p class="order-date"><strong>Tanggal Transaksi:</strong> {{ transaksi.tanggal|date:"d M Y H:i" }}</p>
                             <p class="customer-name"><strong>Nama Pelanggan:</strong> {{ transaksi.pelanggan.nama_pelanggan }}</p>
+                            {% if transaksi.alamat_pengiriman %}
+                            <p class="shipping-address"><strong>Alamat Pengiriman:</strong> {{ transaksi.alamat_pengiriman }}</p>
+                            {% endif %}
                         </div>
                         <div class="col-md-6 text-md-end">
                             <p class="total-payment"><strong>Total Pembayaran:</strong> <span class="fw-bold" style="color: #059212;">Rp {{ transaksi.total|intcomma }}</span></p>
@@ -88,7 +91,7 @@
         .order-info-title {
             font-size: 1.1rem;
         }
-        .order-date, .customer-name, .total-payment, .payment-proof {
+        .order-date, .customer-name, .shipping-address, .total-payment, .payment-proof {
             font-size: 0.9rem;
         }
         .order-products-title {
