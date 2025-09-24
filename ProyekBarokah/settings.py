@@ -143,7 +143,6 @@ JAZZMIN_SETTINGS = {
         "admin_dashboard.Transaksi": "fas fa-shopping-cart",
         "admin_dashboard.DetailTransaksi": "fas fa-receipt",
         "admin_dashboard.Notifikasi": "fas fa-bell",
-        "admin_dashboard.Ulasan": "fas fa-comment-dots",
         "admin_dashboard.admin": "fas fa-user",
     },
     "order_with_respect_to": [

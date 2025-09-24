@@ -63,6 +63,7 @@ STATUS_TRANSAKSI_CHOICES = [
     ('DIPROSES', 'Diproses'),
     ('DIBAYAR', 'Dibayar'),
     ('DIKIRIM', 'Dikirim'),
+    ('SELESAI', 'Selesai'),
     ('DIBATALKAN', 'Dibatalkan'),
 ]
 
@@ -80,6 +81,9 @@ class Transaksi(models.Model):
     bukti_bayar = models.FileField(upload_to='bukti_pembayaran/', verbose_name="Bukti Pembayaran", null=True, blank=True)
     pelanggan = models.ForeignKey(Pelanggan, on_delete=models.CASCADE, verbose_name="Pelanggan")
     alamat_pengiriman = models.TextField(verbose_name="Alamat Pengiriman", blank=True, null=True)
+    # New fields for customer feedback
+    feedback = models.TextField(verbose_name="Feedback", null=True, blank=True)
+    fotofeedback = models.ImageField(upload_to='feedback_images/', verbose_name="Foto Feedback", null=True, blank=True)
 
     class Meta:
         verbose_name_plural = "Transaksi"
@@ -147,20 +151,3 @@ class Notifikasi(models.Model):
     def __str__(self):
         pelanggan_nama = getattr(self.pelanggan, 'nama_pelanggan', 'Pelanggan')
         return f"Notifikasi untuk {pelanggan_nama}"
-
-# Model Ulasan
-class Ulasan(models.Model):
-    teks_ulasan = models.TextField(verbose_name="Teks Ulasan")
-    foto_ulasan = models.ImageField(upload_to='ulasan_images/', verbose_name="Foto Ulasan", null=True, blank=True)
-    tanggal_ulasan = models.DateTimeField(auto_now_add=True, verbose_name="Tanggal Ulasan")
-    transaksi = models.ForeignKey(Transaksi, on_delete=models.CASCADE, verbose_name="Transaksi")
-    produk = models.ForeignKey(Produk, on_delete=models.CASCADE, verbose_name="Produk")
-
-    class Meta:
-        verbose_name_plural = "Ulasan"
-        db_table = 'ulasan'
-    
-    def __str__(self):
-        produk_nama = getattr(self.produk, 'nama_produk', 'Produk')
-        transaksi_pelanggan_nama = getattr(getattr(self.transaksi, 'pelanggan', None), 'nama_pelanggan', 'Pelanggan')
-        return f"Ulasan untuk {produk_nama} oleh {transaksi_pelanggan_nama}"

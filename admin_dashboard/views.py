@@ -569,6 +569,25 @@ def detail_pesanan(request, pesanan_id):
     transaksi = get_object_or_404(Transaksi, pk=pesanan_id, pelanggan=pelanggan)
     detail_transaksi = DetailTransaksi.objects.filter(transaksi=transaksi)
     
+    # Handle feedback submission
+    if request.method == 'POST' and 'submit_feedback' in request.POST:
+        # Only allow feedback submission when transaction status is 'SELESAI'
+        if transaksi.status_transaksi == 'SELESAI':
+            feedback_text = request.POST.get('feedback', '')
+            feedback_image = request.FILES.get('fotofeedback', None)
+            
+            # Update transaction with feedback
+            transaksi.feedback = feedback_text
+            if feedback_image:
+                transaksi.fotofeedback = feedback_image
+            transaksi.save()
+            
+            messages.success(request, 'Terima kasih atas feedback Anda.')
+        else:
+            messages.error(request, 'Feedback hanya dapat dikirim untuk transaksi yang sudah selesai.')
+        
+        return redirect('detail_pesanan', pesanan_id=pesanan_id)
+    
     # Get notification count
     notifikasi_count = get_notification_count(pelanggan.id)
     

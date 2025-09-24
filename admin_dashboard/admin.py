@@ -9,7 +9,23 @@ from django.db import transaction as db_transaction
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import Admin, Pelanggan, Produk, Transaksi, DetailTransaksi, DiskonPelanggan, Notifikasi, Kategori, Ulasan
+from .models import Admin, Pelanggan, Produk, Transaksi, DetailTransaksi, DiskonPelanggan, Notifikasi, Kategori
+
+# Helper function to create notifications
+def create_notification(pelanggan, tipe_pesan, isi_pesan):
+    """
+    Create a notification for a specific customer
+    """
+    try:
+        Notifikasi.objects.create(
+            pelanggan=pelanggan,
+            tipe_pesan=tipe_pesan,
+            isi_pesan=isi_pesan
+        )
+        return True
+    except Exception as e:
+        # Log the error if needed
+        return False
 
 # --- ModelAdmin Kustom untuk Tombol Aksi ---
 class BaseModelAdmin(admin.ModelAdmin):
@@ -52,6 +68,7 @@ class PelangganAdmin(BaseModelAdmin):
     search_fields = ['username', 'nama_pelanggan', 'no_hp']
     list_filter = (IsLoyalFilter,)
     actions = ['laporan_pelanggan_loyal']
+    list_per_page = 6
     
     def total_belanja_admin(self, obj):
         # Calculate total spending for "DIBAYAR" transactions
@@ -77,6 +94,13 @@ class PelangganAdmin(BaseModelAdmin):
         is_loyal = total_spending > 5000000
         is_ultah = obj.tanggal_lahir and obj.tanggal_lahir.month == today.month and obj.tanggal_lahir.day == today.day
         
+        # Debug information
+        # print(f"Customer: {obj.nama_pelanggan}")
+        # print(f"Total spending: {total_spending}")
+        # print(f"Is loyal: {is_loyal}")
+        # print(f"Birthday: {obj.tanggal_lahir}")
+        # print(f"Is birthday: {is_ultah}")
+        
         if is_loyal and is_ultah:
             return format_html(
                 '<a class="button btn-success p-2 text-white rounded" href="{}">Set Diskon</a>',
@@ -99,6 +123,13 @@ class PelangganAdmin(BaseModelAdmin):
         is_loyal = total_spending > 5000000
         is_ultah = pelanggan.tanggal_lahir and pelanggan.tanggal_lahir.month == today.month and pelanggan.tanggal_lahir.day == today.day
         
+        # Debug information
+        # messages.info(request, f"Customer: {pelanggan.nama_pelanggan}")
+        # messages.info(request, f"Total spending: {total_spending}")
+        # messages.info(request, f"Is loyal: {is_loyal}")
+        # messages.info(request, f"Birthday: {pelanggan.tanggal_lahir}")
+        # messages.info(request, f"Is birthday: {is_ultah}")
+        
         if is_loyal and is_ultah:
             # Create or update discount for the customer
             diskon, created = DiskonPelanggan.objects.get_or_create(
@@ -119,10 +150,15 @@ class PelangganAdmin(BaseModelAdmin):
                 diskon.save()
             
             messages.success(request, f"Diskon 10% berhasil diterapkan untuk {pelanggan.nama_pelanggan}.")
+            # Redirect to the discount edit page instead of customer list
+            discount_edit_url = reverse(
+                f'admin:{diskon._meta.app_label}_{diskon._meta.model_name}_change',
+                args=[diskon.pk]
+            )
+            return redirect(discount_edit_url)
         else:
             messages.error(request, f"{pelanggan.nama_pelanggan} tidak memenuhi syarat untuk diskon ulang tahun.")
-        
-        return redirect("admin:admin_dashboard_pelanggan_changelist")
+            return redirect("admin:admin_dashboard_pelanggan_changelist")
     
     def get_urls(self):
         urls = super().get_urls()
@@ -140,6 +176,7 @@ class PelangganAdmin(BaseModelAdmin):
 class KategoriAdmin(BaseModelAdmin):
     list_display = ['nama_kategori', 'get_actions_links']
     search_fields = ['nama_kategori']
+    list_per_page = 6
 
 # Daftarkan model Produk
 @admin.register(Produk)
@@ -148,6 +185,7 @@ class ProdukAdmin(BaseModelAdmin):
     search_fields = ['nama_produk']
     list_filter = ['kategori', 'stok_produk']
     actions = ['laporan_produk_terlaris']
+    list_per_page = 6
     
     def save_model(self, request, obj, form, change):
         # Check if this is a new product
@@ -195,19 +233,53 @@ class DetailTransaksiInline(admin.TabularInline):
 # --- Pendaftaran Transaksi dengan Inline dan Logika Stok/Total ---
 @admin.register(Transaksi)
 class TransaksiAdmin(BaseModelAdmin):
-    list_display = ['id', 'pelanggan', 'tanggal', 'total', 'alamat_pengiriman_display', 'status_transaksi_interactive', 'bukti_bayar_link', 'get_actions_links']
+    list_display = ['nomor', 'pelanggan', 'tanggal', 'status_transaksi_interactive', 'bukti_bayar_display', 'combined_actions']
     list_filter = ['status_transaksi', 'tanggal']
     search_fields = ['pelanggan__nama_pelanggan']
     inlines = [DetailTransaksiInline]
-    actions = ['ubah_status_diproses', 'ubah_status_dibayar', 'ubah_status_dikirim', 'ubah_status_dibatalkan', 'laporan_total_pendapatan']
+    actions = ['ubah_status_diproses', 'ubah_status_dibayar', 'ubah_status_dikirim', 'ubah_status_selesai', 'ubah_status_dibatalkan', 'laporan_total_pendapatan']
+    list_per_page = 6
     
-    def alamat_pengiriman_display(self, obj):
-        if obj.alamat_pengiriman:
-            # Truncate long addresses for display
-            if len(obj.alamat_pengiriman) > 50:
-                return f"{obj.alamat_pengiriman[:50]}..."
-            return obj.alamat_pengiriman
-        return "Alamat default pelanggan"
+    @admin.display(description='No')
+    def nomor(self, obj):
+        return obj.id
+    
+    @admin.display(description='Aksi')
+    def combined_actions(self, obj):
+        if obj:
+            # Detail action
+            detail_url = reverse(f'admin:{obj._meta.app_label}_{obj._meta.model_name}_change', args=[obj.pk])
+            detail_btn = f'<a href="{detail_url}" class="btn btn-sm btn-info" title="Detail"><i class="fas fa-eye"></i></a>'
+            
+            # Edit action
+            edit_url = reverse(f'admin:{obj._meta.app_label}_{obj._meta.model_name}_change', args=[obj.pk])
+            edit_btn = f'<a href="{edit_url}" class="btn btn-sm btn-primary" title="Edit"><i class="fas fa-edit"></i></a>'
+            
+            # Delete action
+            delete_url = reverse(f'admin:{obj._meta.app_label}_{obj._meta.model_name}_delete', args=[obj.pk])
+            delete_btn = f'<a href="{delete_url}" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></a>'
+            
+            return format_html('&nbsp;'.join([detail_btn, edit_btn, delete_btn]))
+        return ""
+    
+    @admin.display(description='Bukti Bayar')
+    def bukti_bayar_display(self, obj):
+        if obj.bukti_bayar:
+            # Check if it's an image file based on extension
+            url = obj.bukti_bayar.url
+            if url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')):
+                return format_html(
+                    '<a href="{}" target="_blank"><img src="{}" style="max-height: 50px; max-width: 50px;" /></a>',
+                    url, url
+                )
+            else:
+                # For non-image files, show a link
+                return format_html(
+                    '<a href="{}" target="_blank">Lihat File</a>',
+                    url
+                )
+        return "Tidak ada"
+    bukti_bayar_display.short_description = 'Bukti Pembayaran'
     
     def status_transaksi_interactive(self, obj):
         # Display status as plain text instead of dropdown
@@ -215,6 +287,7 @@ class TransaksiAdmin(BaseModelAdmin):
             'DIPROSES': 'Diproses',
             'DIBAYAR': 'Dibayar',
             'DIKIRIM': 'Dikirim',
+            'SELESAI': 'Selesai',
             'DIBATALKAN': 'Dibatalkan',
         }
         
@@ -226,6 +299,7 @@ class TransaksiAdmin(BaseModelAdmin):
             'DIPROSES': 'background-color: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-weight: 500;',
             'DIBAYAR': 'background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-weight: 500;',
             'DIKIRIM': 'background-color: #cce7ff; color: #004085; padding: 4px 8px; border-radius: 4px; font-weight: 500;',
+            'SELESAI': 'background-color: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-weight: 500;',
             'DIBATALKAN': 'background-color: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-weight: 500;',
         }
         
@@ -236,22 +310,7 @@ class TransaksiAdmin(BaseModelAdmin):
             style,
             display_label
         )
-    
-    def bukti_bayar_link(self, obj):
-        if obj.bukti_bayar:
-            # Check if it's an image based on extension
-            url = obj.bukti_bayar.url
-            if url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                return format_html(
-                    '<a href="{}" target="_blank" class="btn btn-sm btn-info bukti-btn">Lihat Bukti</a>',
-                    url
-                )
-            else:
-                return format_html(
-                    '<a href="{}" target="_blank" class="btn btn-sm btn-info bukti-btn">Download Bukti</a>',
-                    url
-                )
-        return "Tidak ada"
+    status_transaksi_interactive.short_description = 'Status'
     
     # Custom actions for bulk status changes
     def ubah_status_diproses(self, request, queryset):
@@ -265,6 +324,18 @@ class TransaksiAdmin(BaseModelAdmin):
     def ubah_status_dikirim(self, request, queryset):
         updated_count = queryset.update(status_transaksi='DIKIRIM')
         self.message_user(request, f"{updated_count} transaksi berhasil diubah statusnya menjadi Dikirim.")
+    
+    def ubah_status_selesai(self, request, queryset):
+        updated_count = queryset.update(status_transaksi='SELESAI')
+        # Create notifications for customers whose transactions were marked as completed
+        for transaksi in queryset:
+            detail_url = reverse('detail_pesanan', args=[transaksi.pk])
+            create_notification(
+                transaksi.pelanggan,
+                "Pesanan Selesai",
+                f"Pesanan Anda dengan ID {transaksi.id} telah SELESAI. <a href='{detail_url}' class='alert-link'>Beri Feedback</a>"
+            )
+        self.message_user(request, f"{updated_count} transaksi berhasil diubah statusnya menjadi Selesai.")
     
     def ubah_status_dibatalkan(self, request, queryset):
         updated_count = queryset.update(status_transaksi='DIBATALKAN')
@@ -325,6 +396,7 @@ class DiskonPelangganAdmin(BaseModelAdmin):
     list_display = ['pelanggan', 'produk', 'persen_diskon', 'status', 'get_actions_links']
     search_fields = ['pelanggan__nama_pelanggan', 'produk__nama_produk']
     list_filter = ['status']
+    list_per_page = 6
 
 # Daftarkan model Notifikasi
 @admin.register(Notifikasi)
@@ -332,10 +404,4 @@ class NotifikasiAdmin(BaseModelAdmin):
     list_display = ['pelanggan', 'tipe_pesan', 'is_read', 'created_at', 'get_actions_links']
     search_fields = ['pelanggan__nama_pelanggan', 'tipe_pesan']
     list_filter = ['is_read', 'created_at']
-
-# Daftarkan model Ulasan
-@admin.register(Ulasan)
-class UlasanAdmin(BaseModelAdmin):
-    list_display = ['produk', 'transaksi', 'tanggal_ulasan', 'get_actions_links']
-    search_fields = ['produk__nama_produk', 'transaksi__pelanggan__nama_pelanggan']
-    list_filter = ['tanggal_ulasan']
+    list_per_page = 6

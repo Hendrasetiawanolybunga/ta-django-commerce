@@ -72,6 +72,40 @@
                 </table>
             </div>
             
+            <!-- Feedback Form -->
+            {% if transaksi.status_transaksi == 'SELESAI' %}
+            <div class="card card-custom mb-4">
+                <div class="card-header" style="background-color: #059212; color: #ECFFE6;">
+                    <h5 class="mb-0">Berikan Feedback</h5>
+                </div>
+                <div class="card-body">
+                    {% if transaksi.feedback %}
+                    <div class="alert alert-success">
+                        <strong>Feedback Anda:</strong> {{ transaksi.feedback }}
+                        {% if transaksi.fotofeedback %}
+                        <br><strong>Foto Feedback:</strong><br>
+                        <img src="{{ transaksi.fotofeedback.url }}" alt="Foto Feedback" class="img-fluid mt-2" style="max-height: 200px;">
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="submit_feedback" value="1">
+                        <div class="mb-3">
+                            <label for="feedback" class="form-label">Feedback</label>
+                            <textarea class="form-control" id="feedback" name="feedback" rows="3" placeholder="Bagikan pengalaman Anda dengan produk kami..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="fotofeedback" class="form-label">Foto (Opsional)</label>
+                            <input class="form-control" type="file" id="fotofeedback" name="fotofeedback" accept="image/*">
+                        </div>
+                        <button type="submit" class="btn btn-success">Kirim Feedback</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
             <div class="d-flex justify-content-between mt-4">
                 <a href="{% url 'daftar_pesanan' %}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left me-1"></i>Kembali ke Daftar Pesanan
