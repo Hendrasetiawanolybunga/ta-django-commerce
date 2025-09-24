@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils import timezone
 from django.db import transaction
+from decimal import Decimal
 from .forms import PelangganRegistrationForm, PelangganLoginForm, PelangganEditForm, PembayaranForm
 from .models import Produk, Pelanggan, Transaksi, DetailTransaksi, Notifikasi, DiskonPelanggan, Kategori
 from django.db.models import Sum
@@ -222,8 +223,11 @@ def keranjang(request):
         
         if diskon_produk:
             diskon = diskon_produk
-            potongan_harga = int(sub_total * (diskon.persen_diskon / 100))
-            harga_setelah_diskon = sub_total - potongan_harga
+            # Ensure all calculations use Decimal type
+            sub_total_decimal = Decimal(str(sub_total))
+            persen_diskon_decimal = Decimal(str(diskon.persen_diskon))
+            potongan_harga = int(sub_total_decimal * (persen_diskon_decimal / 100))
+            harga_setelah_diskon = sub_total_decimal - Decimal(str(potongan_harga))
             sub_total = harga_setelah_diskon
         
         total_belanja += sub_total
@@ -426,13 +430,19 @@ def proses_pembayaran(request):
                         
                         # Apply discount if found
                         if diskon_produk:
-                            harga_satuan = harga_satuan - (harga_satuan * diskon_produk.persen_diskon / 100)
+                            # Ensure all calculations use Decimal type
+                            harga_satuan_decimal = Decimal(str(harga_satuan))
+                            persen_diskon_decimal = Decimal(str(diskon_produk.persen_diskon))
+                            harga_satuan = harga_satuan_decimal - (harga_satuan_decimal * persen_diskon_decimal / 100)
                         
                         # Save the original stock before updating
                         produk.stok_produk -= jumlah
                         produk.save()
                         
-                        sub_total = harga_satuan * jumlah
+                        # Ensure all calculations use Decimal type
+                        harga_satuan_decimal = Decimal(str(harga_satuan))
+                        jumlah_decimal = Decimal(str(jumlah))
+                        sub_total = harga_satuan_decimal * jumlah_decimal
                         detail = DetailTransaksi.objects.create(
                             transaksi=transaksi,
                             produk=produk,
@@ -495,7 +505,10 @@ def proses_pembayaran(request):
     for produk_id_str, jumlah in keranjang_belanja.items():
         produk_id = int(produk_id_str)
         produk = get_object_or_404(Produk, pk=produk_id)
-        harga_asli = produk.harga_produk * jumlah
+        # Ensure all calculations use Decimal type
+        harga_produk_decimal = Decimal(str(produk.harga_produk))
+        jumlah_decimal = Decimal(str(jumlah))
+        harga_asli = harga_produk_decimal * jumlah_decimal
         sub_total = harga_asli
         
         # Check for discounts
@@ -520,8 +533,11 @@ def proses_pembayaran(request):
         
         if diskon_produk:
             diskon = diskon_produk
-            potongan_harga = int(sub_total * (diskon.persen_diskon / 100))
-            harga_setelah_diskon = sub_total - potongan_harga
+            # Ensure all calculations use Decimal type
+            sub_total_decimal = Decimal(str(sub_total))
+            persen_diskon_decimal = Decimal(str(diskon.persen_diskon))
+            potongan_harga = int(sub_total_decimal * (persen_diskon_decimal / 100))
+            harga_setelah_diskon = sub_total_decimal - Decimal(str(potongan_harga))
             sub_total = harga_setelah_diskon
         
         total_belanja += sub_total
@@ -569,6 +585,9 @@ def detail_pesanan(request, pesanan_id):
     transaksi = get_object_or_404(Transaksi, pk=pesanan_id, pelanggan=pelanggan)
     detail_transaksi = DetailTransaksi.objects.filter(transaksi=transaksi)
     
+    # Calculate total including shipping cost
+    total_dengan_ongkir = Decimal(str(transaksi.total)) + Decimal(str(transaksi.ongkir))
+    
     # Handle feedback submission
     if request.method == 'POST' and 'submit_feedback' in request.POST:
         # Only allow feedback submission when transaction status is 'SELESAI'
@@ -594,6 +613,7 @@ def detail_pesanan(request, pesanan_id):
     context = {
         'transaksi': transaksi,
         'detail_transaksi': detail_transaksi,
+        'total_dengan_ongkir': total_dengan_ongkir,
         'notifikasi_count': notifikasi_count
     }
     return render(request, 'detail_pesanan.html', context)

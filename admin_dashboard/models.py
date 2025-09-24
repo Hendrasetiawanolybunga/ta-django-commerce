@@ -72,6 +72,7 @@ class Transaksi(models.Model):
     id = models.AutoField(primary_key=True)
     tanggal = models.DateTimeField(auto_now_add=True, verbose_name="Tanggal Transaksi")
     total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total", blank=True, null=True)
+    ongkir = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Ongkos Kirim", default=0)
     status_transaksi = models.CharField(
         max_length=50, 
         choices=STATUS_TRANSAKSI_CHOICES, 
@@ -118,7 +119,7 @@ STATUS_DISKON_CHOICES = [
 class DiskonPelanggan(models.Model):
     pelanggan = models.ForeignKey(Pelanggan, on_delete=models.CASCADE, verbose_name="Pelanggan")
     produk = models.ForeignKey(Produk, on_delete=models.CASCADE, verbose_name="Produk", null=True, blank=True)
-    persen_diskon = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Persen Diskon")
+    persen_diskon = models.IntegerField(verbose_name="Persen Diskon")
     status = models.CharField(
         max_length=50, 
         choices=STATUS_DISKON_CHOICES, 

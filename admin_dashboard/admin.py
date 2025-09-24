@@ -233,7 +233,7 @@ class DetailTransaksiInline(admin.TabularInline):
 # --- Pendaftaran Transaksi dengan Inline dan Logika Stok/Total ---
 @admin.register(Transaksi)
 class TransaksiAdmin(BaseModelAdmin):
-    list_display = ['nomor', 'pelanggan', 'tanggal', 'status_transaksi_interactive', 'bukti_bayar_display', 'combined_actions']
+    list_display = ['nomor', 'pelanggan', 'tanggal', 'status_transaksi_interactive', 'ongkir', 'bukti_bayar_display', 'combined_actions']
     list_filter = ['status_transaksi', 'tanggal']
     search_fields = ['pelanggan__nama_pelanggan']
     inlines = [DetailTransaksiInline]
@@ -341,6 +341,30 @@ class TransaksiAdmin(BaseModelAdmin):
         updated_count = queryset.update(status_transaksi='DIBATALKAN')
         self.message_user(request, f"{updated_count} transaksi berhasil diubah statusnya menjadi Dibatalkan.")
     
+    def save_model(self, request, obj, form, change):
+        # Check if ongkir field has changed
+        old_ongkir = None
+        if change:
+            try:
+                old_obj = Transaksi.objects.get(pk=obj.pk)
+                old_ongkir = old_obj.ongkir
+            except Transaksi.DoesNotExist:
+                pass
+        
+        super().save_model(request, obj, form, change)
+        
+        # If ongkir has changed, create a notification for the customer
+        if old_ongkir != obj.ongkir:
+            from .views import create_notification
+            # Create notification for the customer
+            create_notification(
+                obj.pelanggan,
+                "Ongkos Kirim Diperbarui",
+                f"Ongkos kirim untuk pesanan Anda dengan ID #{obj.id} telah diperbarui menjadi Rp {obj.ongkir:,.0f}. "
+                f"Total pembayaran Anda adalah Rp {obj.total + obj.ongkir:,.0f} (produk: Rp {obj.total:,.0f} + ongkir: Rp {obj.ongkir:,.0f}). "
+                f"Silakan bayar sesuai total tersebut saat produk diantar."
+            )
+
     def save_related(self, request, form, formsets, change):
         obj = form.instance
         

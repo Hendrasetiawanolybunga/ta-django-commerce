@@ -33,7 +33,9 @@
                             {% endif %}
                         </div>
                         <div class="col-md-6 text-md-end">
-                            <p class="total-payment"><strong>Total Pembayaran:</strong> <span class="fw-bold" style="color: #059212;">Rp {{ transaksi.total|intcomma }}</span></p>
+                            <p class="product-total"><strong>Total Produk:</strong> <span class="fw-bold">Rp {{ transaksi.total|intcomma }}</span></p>
+                            <p class="shipping-cost"><strong>Ongkos Kirim:</strong> <span class="fw-bold">Rp {{ transaksi.ongkir|intcomma }}</span></p>
+                            <p class="total-payment"><strong>Total Pembayaran:</strong> <span class="fw-bold" style="color: #059212;">Rp {{ total_dengan_ongkir|intcomma }}</span></p>
                             {% if transaksi.bukti_bayar %}
                             <p class="payment-proof"><strong>Bukti Pembayaran:</strong> <a href="{{ transaksi.bukti_bayar.url }}" target="_blank">Lihat Bukti</a></p>
                             {% endif %}
