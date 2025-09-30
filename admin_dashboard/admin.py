@@ -10,6 +10,24 @@ from django import forms
 from django.core.exceptions import ValidationError
 
 from .models import Admin, Pelanggan, Produk, Transaksi, DetailTransaksi, DiskonPelanggan, Notifikasi, Kategori
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin
+
+# Resource classes for export functionality
+class PelangganResource(resources.ModelResource):
+    class Meta:
+        model = Pelanggan
+        fields = ('id', 'nama_pelanggan', 'alamat', 'tanggal_lahir', 'no_hp', 'username')
+
+class ProdukResource(resources.ModelResource):
+    class Meta:
+        model = Produk
+        fields = ('id', 'nama_produk', 'deskripsi_produk', 'stok_produk', 'harga_produk', 'kategori__nama_kategori')
+
+class TransaksiResource(resources.ModelResource):
+    class Meta:
+        model = Transaksi
+        fields = ('id', 'tanggal', 'total', 'ongkir', 'status_transaksi', 'pelanggan__nama_pelanggan', 'alamat_pengiriman')
 
 # Helper function to create notifications
 def create_notification(pelanggan, tipe_pesan, isi_pesan):
@@ -63,7 +81,8 @@ class AdminAdmin(BaseModelAdmin):
 
 # Daftarkan model Pelanggan
 @admin.register(Pelanggan)
-class PelangganAdmin(BaseModelAdmin):
+class PelangganAdmin(ImportExportModelAdmin, BaseModelAdmin):
+    resource_class = PelangganResource
     list_display = ['username', 'nama_pelanggan', 'no_hp', 'total_belanja_admin', 'is_ultah', 'set_diskon_button', 'get_actions_links']
     search_fields = ['username', 'nama_pelanggan', 'no_hp']
     list_filter = (IsLoyalFilter,)
@@ -98,7 +117,7 @@ class PelangganAdmin(BaseModelAdmin):
         # print(f"Customer: {obj.nama_pelanggan}")
         # print(f"Total spending: {total_spending}")
         # print(f"Is loyal: {is_loyal}")
-        # print(f"Birthday: {obj.tanggal_lahir}")
+        # print(f"Birthday: {pelanggan.tanggal_lahir}")
         # print(f"Is birthday: {is_ultah}")
         
         if is_loyal and is_ultah:
@@ -180,7 +199,8 @@ class KategoriAdmin(BaseModelAdmin):
 
 # Daftarkan model Produk
 @admin.register(Produk)
-class ProdukAdmin(BaseModelAdmin):
+class ProdukAdmin(ImportExportModelAdmin, BaseModelAdmin):
+    resource_class = ProdukResource
     list_display = ['nama_produk', 'kategori', 'harga_produk', 'stok_produk', 'get_actions_links']
     search_fields = ['nama_produk']
     list_filter = ['kategori', 'stok_produk']
@@ -221,7 +241,24 @@ class ProdukAdmin(BaseModelAdmin):
 
     # Custom action for best-selling products report
     def laporan_produk_terlaris(self, request, queryset):
-        self.message_user(request, "Laporan produk terlaris dinonaktifkan.")
+        from django.db.models import Sum
+        
+        # Get best selling products based on quantity sold
+        best_selling = DetailTransaksi.objects.filter(
+            transaksi__status_transaksi='DIBAYAR'
+        ).values(
+            'produk__nama_produk'
+        ).annotate(
+            total_quantity=Sum('jumlah_produk')
+        ).order_by('-total_quantity')[:10]  # Top 10 best selling products
+        
+        if best_selling:
+            message = "10 Produk Terlaris:\n"
+            for i, item in enumerate(best_selling, 1):
+                message += f"{i}. {item['produk__nama_produk']}: {item['total_quantity']} unit terjual\n"
+            self.message_user(request, message)
+        else:
+            self.message_user(request, "Tidak ada data penjualan untuk produk terpilih.")
 
 # --- Pendaftaran Inline untuk DetailTransaksi ---
 class DetailTransaksiInline(admin.TabularInline):
@@ -232,7 +269,8 @@ class DetailTransaksiInline(admin.TabularInline):
     
 # --- Pendaftaran Transaksi dengan Inline dan Logika Stok/Total ---
 @admin.register(Transaksi)
-class TransaksiAdmin(BaseModelAdmin):
+class TransaksiAdmin(ImportExportModelAdmin, BaseModelAdmin):
+    resource_class = TransaksiResource
     list_display = ['nomor', 'pelanggan', 'tanggal', 'status_transaksi_interactive', 'ongkir', 'bukti_bayar_display', 'combined_actions']
     list_filter = ['status_transaksi', 'tanggal']
     search_fields = ['pelanggan__nama_pelanggan']
@@ -262,7 +300,7 @@ class TransaksiAdmin(BaseModelAdmin):
             return format_html('&nbsp;'.join([detail_btn, edit_btn, delete_btn]))
         return ""
     
-    @admin.display(description='Bukti Bayar')
+    @admin.display(description='Bukti Pembayaran')
     def bukti_bayar_display(self, obj):
         if obj.bukti_bayar:
             # Check if it's an image file based on extension
@@ -279,8 +317,8 @@ class TransaksiAdmin(BaseModelAdmin):
                     url
                 )
         return "Tidak ada"
-    bukti_bayar_display.short_description = 'Bukti Pembayaran'
-    
+
+    @admin.display(description='Status')
     def status_transaksi_interactive(self, obj):
         # Display status as plain text instead of dropdown
         status_labels = {
@@ -310,8 +348,7 @@ class TransaksiAdmin(BaseModelAdmin):
             style,
             display_label
         )
-    status_transaksi_interactive.short_description = 'Status'
-    
+
     # Custom actions for bulk status changes
     def ubah_status_diproses(self, request, queryset):
         updated_count = queryset.update(status_transaksi='DIPROSES')
@@ -411,8 +448,11 @@ class TransaksiAdmin(BaseModelAdmin):
 
     # Custom action for total revenue report
     def laporan_total_pendapatan(self, request, queryset):
-        total_pendapatan = queryset.aggregate(Sum('total'))['total__sum'] or 0
-        self.message_user(request, f"Total pendapatan dari {queryset.count()} transaksi terpilih: Rp {total_pendapatan:,.0f}")
+        # Filter only paid transactions for accurate revenue calculation
+        paid_transactions = queryset.filter(status_transaksi='DIBAYAR')
+        from django.db.models import Sum
+        total_pendapatan = paid_transactions.aggregate(Sum('total'))['total__sum'] or 0
+        self.message_user(request, f"Total pendapatan dari {paid_transactions.count()} transaksi terbayar: Rp {total_pendapatan:,.0f}")
 
 # Daftarkan model DiskonPelanggan
 @admin.register(DiskonPelanggan)

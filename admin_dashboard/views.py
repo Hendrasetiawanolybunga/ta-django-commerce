@@ -6,6 +6,9 @@ from decimal import Decimal
 from .forms import PelangganRegistrationForm, PelangganLoginForm, PelangganEditForm, PembayaranForm
 from .models import Produk, Pelanggan, Transaksi, DetailTransaksi, Notifikasi, DiskonPelanggan, Kategori
 from django.db.models import Sum
+from django.db.models.functions import TruncMonth
+from django.http import JsonResponse
+import json
 import os
 from django.conf import settings
 
@@ -724,3 +727,32 @@ def get_cart_item_count(request):
         return sum(keranjang.values())
     except Exception:
         return 0
+
+def laporan_pendapatan_bulanan(request):
+    """
+    View to generate monthly revenue report
+    """
+    # Aggregate total revenue by month for paid transactions
+    monthly_revenue = Transaksi.objects.filter(
+        status_transaksi='DIBAYAR'
+    ).annotate(
+        month=TruncMonth('tanggal')
+    ).values('month').annotate(
+        total_revenue=Sum('total')
+    ).order_by('month')
+    
+    # Format data for charting
+    labels = []
+    data = []
+    
+    for item in monthly_revenue:
+        labels.append(item['month'].strftime('%B %Y'))
+        data.append(float(item['total_revenue'] or 0))
+    
+    context = {
+        'labels': json.dumps(labels),
+        'data': json.dumps(data),
+        'monthly_revenue': monthly_revenue
+    }
+    
+    return render(request, 'laporan_pendapatan_bulanan.html', context)

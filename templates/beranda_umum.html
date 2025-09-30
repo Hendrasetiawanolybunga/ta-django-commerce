@@ -13,29 +13,54 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts - Poppins -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Dynamic Navbar CSS -->
+    <link rel="stylesheet" href="{% static 'css/dynamic-navbar.css' %}">
     <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+        
         body {
             font-family: 'Poppins', sans-serif;
             background-color: #ECFFE6;
-            padding-top: 0;
         }
+        
         .hero-section {
             background: linear-gradient(rgba(30, 80, 40, 0.6), rgba(30, 80, 40, 0.6)), url('{% static "images/hero-image.jpeg" %}') no-repeat center center;
             background-size: cover;
-            padding: 100px 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: white;
-            margin-top: 0;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none;
         }
+        
+        .hero-content {
+            padding-top: 56px; /* Height of the navbar */
+        }
+        
         .hero-title {
             color: #FFFFFF;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
         }
+        
         .hero-description {
             font-size: 1.2rem;
             max-width: 800px;
             margin: 0 auto 2rem;
             color: #F0F8F0;
+            transition: all 0.3s ease;
         }
+        
         .btn-hero {
             border-radius: 30px;
             padding: 12px 30px;
@@ -45,6 +70,7 @@
             border-color: #059212;
             color: #ECFFE6;
         }
+        
         .btn-hero:hover {
             transform: translateY(-3px);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
@@ -52,26 +78,31 @@
             border-color: #000000;
             color: #ECFFE6;
         }
+        
         .product-card {
             border-radius: 15px;
             overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: all 0.3s ease;
             border: none;
             position: relative;
             cursor: pointer;
         }
+        
         .product-card:hover {
             transform: translateY(-10px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15) !important;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
         }
+        
         .product-card img {
             height: 200px;
             object-fit: cover;
             transition: all 0.3s ease;
         }
+        
         .product-card:hover img {
             opacity: 0.8;
         }
+        
         .overlay-text {
             position: absolute;
             top: 0;
@@ -83,19 +114,23 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0; /* Hidden by default */
+            opacity: 0;
             transition: opacity 0.3s ease;
             font-weight: 600;
             font-size: 1.2rem;
         }
+        
         .product-card:hover .overlay-text {
-            opacity: 1; /* Visible on hover */
+            opacity: 1;
         }
+        
         .section-title {
             position: relative;
             padding-bottom: 15px;
             margin-bottom: 30px;
+            transition: all 0.3s ease;
         }
+        
         .section-title:after {
             content: '';
             position: absolute;
@@ -106,34 +141,48 @@
             height: 3px;
             background: #059212;
             border-radius: 3px;
+            transition: all 0.3s ease;
         }
+        
         .btn-custom {
             background-color: #059212;
             border-color: #059212;
             color: #ECFFE6;
+            transition: all 0.3s ease;
         }
+        
         .btn-custom:hover {
             background-color: #000000;
             border-color: #000000;
             color: #ECFFE6;
+            transform: translateY(-2px);
         }
+        
         .gallery-img {
             height: 300px;
             object-fit: cover;
             border-radius: 15px;
+            transition: all 0.3s ease;
         }
+        
         .about-section, .faq-section {
             padding: 80px 0;
+            transition: all 0.3s ease;
         }
+        
         .about-section {
             background-color: #f8f9fa;
         }
+        
         .faq-section {
             background-color: #ffffff;
         }
+        
         .faq-item {
             margin-bottom: 20px;
+            transition: all 0.3s ease;
         }
+        
         .faq-question {
             font-weight: 600;
             color: #059212;
@@ -143,68 +192,86 @@
             border-radius: 10px;
             transition: all 0.3s ease;
         }
+        
         .faq-question:hover {
             background-color: #059212;
             color: #ECFFE6;
         }
+        
         .faq-answer {
             padding: 15px;
             background-color: #f8f9fa;
             border-radius: 0 0 10px 10px;
             display: none;
+            transition: all 0.3s ease;
         }
+        
         .faq-item.active .faq-answer {
             display: block;
         }
+        
         /* Mobile Responsive Styles */
         @media (max-width: 768px) {
             .hero-section {
-                padding: 60px 0;
                 background: linear-gradient(rgba(30, 80, 40, 0.7), rgba(30, 80, 40, 0.7)), url('{% static "images/hero-image.jpeg" %}') no-repeat center center;
                 background-size: cover;
             }
+            
             .hero-title {
                 font-size: 2rem;
             }
+            
             .hero-description {
                 font-size: 1rem;
             }
+            
             .gallery-img {
                 height: 200px;
             }
+            
             .product-card .card-title {
                 font-size: 1.2rem;
             }
+            
             .product-card .card-text {
                 font-size: 0.9rem;
             }
+            
             .about-section, .faq-section {
                 padding: 40px 0;
             }
+            
             .section-title {
                 font-size: 1.5rem;
             }
+            
             .btn-hero {
                 padding: 10px 20px;
                 font-size: 0.9rem;
             }
         }
+        
         @media (max-width: 576px) {
             .hero-section {
                 padding: 40px 0;
             }
+            
             .hero-title {
                 font-size: 1.5rem;
             }
+            
             .hero-description {
                 font-size: 0.9rem;
             }
+            
             .gallery-img {
                 height: 150px;
             }
+            
             .product-card .card-title {
                 font-size: 1rem;
             }
+            
             .product-card .card-text {
                 font-size: 0.8rem;
             }
@@ -214,8 +281,8 @@
 <body>
     {% include 'navbar_public.html' %}
 
-    <section class="hero-section text-center position-relative">
-        <div class="container">
+    <section class="hero-section text-center">
+        <div class="container hero-content">
             <div class="row align-items-center">
                 <div class="col-lg-12 hero-text">
                     <h1 class="display-4 fw-bold mb-4 hero-title">Selamat Datang di UD. Barokah Jaya Beton</h1>
@@ -376,8 +443,37 @@
     <!-- Bootstrap 5.3 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Handle image modal
         document.addEventListener('DOMContentLoaded', function() {
+            // Navbar scroll effect
+            const navbar = document.getElementById('mainNavbar');
+            
+            window.addEventListener('scroll', function() {
+                if (window.scrollY > 100) {
+                    navbar.classList.remove('navbar-hero');
+                    navbar.classList.add('navbar-scrolled');
+                } else {
+                    navbar.classList.remove('navbar-scrolled');
+                    navbar.classList.add('navbar-hero');
+                }
+            });
+            
+            // Adjust scroll position for fixed navbar
+            const links = document.querySelectorAll('a[href^="#"]');
+            links.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const targetId = this.getAttribute('href');
+                    if (targetId !== '#' && document.querySelector(targetId)) {
+                        e.preventDefault();
+                        const targetElement = document.querySelector(targetId);
+                        const offsetTop = targetElement.offsetTop - 56; // 56px is navbar height
+                        window.scrollTo({
+                            top: offsetTop,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+            
             const imageModal = document.getElementById('imageModal');
             imageModal.addEventListener('show.bs.modal', function (event) {
                 const button = event.relatedTarget;

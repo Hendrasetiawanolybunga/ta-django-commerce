@@ -1,5 +1,5 @@
 {% load static %}
-<nav class="navbar navbar-expand-lg navbar-custom-public">
+<nav class="navbar navbar-expand-lg navbar-custom-public navbar-hero" id="mainNavbar">
     <div class="container">
         <a class="navbar-brand fw-bold" href="{% url 'beranda_umum' %}">
             <i class="fas fa-store me-2"></i>UD. Barokah Jaya Beton
@@ -31,21 +31,16 @@
 </nav>
 
 <style>
-    .navbar-custom-public {
-        background: linear-gradient(to right, #056a0d, #059212); /* Darker, more elegant green */
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        padding: 0.5rem 0;
-        transition: all 0.3s ease;
-    }
-    
     .navbar-brand {
         color: #FFFFFF !important;
         font-weight: 700;
         font-size: 1.2rem;
+        transition: all 0.3s ease;
     }
     
     .navbar-brand:hover {
         color: #ECFFE6 !important;
+        transform: translateY(-2px);
     }
     
     .nav-link {
@@ -103,7 +98,7 @@
         position: absolute;
         top: -8px;
         right: -8px;
-        background-color: #dc3545; /* Red background */
+        background-color: #dc3545;
         color: white;
         border-radius: 50%;
         padding: 2px 6px;
@@ -114,6 +109,7 @@
         align-items: center;
         justify-content: center;
         font-weight: bold;
+        transition: all 0.3s ease;
     }
     
     /* Center navigation */

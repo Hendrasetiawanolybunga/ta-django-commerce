@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Laporan Pendapatan Bulanan{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Laporan Pendapatan Bulanan</h2>
+    
+    <div class="card">
+        <div class="card-header">
+            <h5>Grafik Pendapatan Bulanan</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="revenueChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Data Pendapatan Bulanan</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Bulan</th>
+                        <th>Total Pendapatan (Rp)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in monthly_revenue %}
+                    <tr>
+                        <td>{{ item.month|date:"F Y" }}</td>
+                        <td>Rp {{ item.total_revenue|floatformat:0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var ctx = document.getElementById('revenueChart').getContext('2d');
+        var labels = {{ labels|safe }};
+        var data = {{ data|safe }};
+        
+        var revenueChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Pendapatan Bulanan (Rp)',
+                    data: data,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'Rp ' + value.toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
