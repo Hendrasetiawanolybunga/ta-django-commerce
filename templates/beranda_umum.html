@@ -86,6 +86,19 @@
             border: none;
             position: relative;
             cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .product-card .card-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .product-card .card-text {
+            flex: 1;
         }
         
         .product-card:hover {
@@ -128,6 +141,7 @@
             position: relative;
             padding-bottom: 15px;
             margin-bottom: 30px;
+            color: #059212; /* Consistent green color for all section titles */
             transition: all 0.3s ease;
         }
         
@@ -159,9 +173,9 @@
         }
         
         .gallery-img {
-            height: 300px;
+            height: 200px;
             object-fit: cover;
-            border-radius: 15px;
+            border-radius: 15px 15px 0 0;
             transition: all 0.3s ease;
         }
         
@@ -208,6 +222,80 @@
         
         .faq-item.active .faq-answer {
             display: block;
+        }
+        
+        /* Feature Call-out Section */
+        #feature-callout {
+            background-color: #f8f9fa;
+        }
+        
+        #feature-callout .section-title {
+            color: #059212;
+        }
+        
+        #feature-callout .section-title:after {
+            background: #059212;
+        }
+        
+        #feature-callout .btn-success {
+            background-color: #059212;
+            border-color: #059212;
+            border-radius: 30px;
+            font-weight: 500;
+            padding: 8px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        #feature-callout .btn-success:hover {
+            background-color: #047a0f;
+            border-color: #047a0f;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        #feature-callout .d-flex span {
+            font-weight: 500;
+        }
+        
+        /* Discount Card Styles */
+        .discount-card {
+            background: linear-gradient(135deg, #059212 0%, #047a0f 100%);
+            border-radius: 15px;
+            overflow: hidden;
+            height: 100%;
+            box-shadow: 0 10px 20px rgba(5, 146, 18, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .discount-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(5, 146, 18, 0.4);
+        }
+        
+        .discount-card .card-title {
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        .discount-card .card-text {
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+        }
+        
+        .feature-icon {
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        
+        .feature-icon:hover {
+            transform: scale(1.2) rotate(10deg);
+        }
+        
+        .btn-light {
+            transition: all 0.3s ease;
+        }
+        
+        .btn-light:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
         
         /* Mobile Responsive Styles */
@@ -300,6 +388,42 @@
         </div>
     </section>
 
+    <!-- Feature Call-out Section -->
+  <section id="feature-callout" class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-5 section-title" style="color: #059212;">Penawaran Eksklusif untuk Pelanggan Terbaik</h2>
+        <div class="row align-items-center">
+            
+            <div class="col-lg-12 mb-4 mb-lg-0">
+                <div class="card discount-card shadow-lg h-100 border-0" style="background-color: #059212;">
+                    <div class="card-body text-white text-center p-5">
+                        <div class="mb-4">
+                            <i class="fas fa-hand-holding-usd fa-3x me-3 feature-icon" style="color: #FFC107;"></i>
+                            <i class="fas fa-birthday-cake fa-3x me-3 feature-icon" style="color: #FFC107;"></i>
+                            <i class="fas fa-star fa-3x feature-icon" style="color: #FFC107;"></i>
+                        </div>
+                        
+                        <h3 class="card-title fw-bold mb-4" style="font-size: 2rem;">
+                            Diskon Eksklusif Ganda Khusus Pelanggan Loyal
+                        </h3>
+                        
+                        <p class="card-text lead fw-bold" style="font-size: 1.5rem;">
+                            Dapatkan **Potongan Harga Tambahan Spesial** sebagai apresiasi, berlaku **hanya** untuk Pelanggan yang telah mencapai Total Belanja Kumulatif **Diatas Rp5.000.000** *sekaligus* merayakan **Hari Ulang Tahun Anda**.
+                        </p>
+                        
+                        <p class="mt-3 fst-italic">Syarat ganda ini memastikan penawaran terbaik hanya diterima oleh pelanggan paling setia.</p>
+                        
+                        <a href="{% url 'register_pelanggan' %}" class="btn btn-warning text-dark mt-4 px-5 py-3 fw-bold rounded-pill shadow-lg">
+                            <i class="fas fa-user-plus me-2"></i> Aktifkan Keuntungan Anda Sekarang
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</section>
+
     <section id="gallery" class="py-5 bg-white">
         <div class="container">
             <h2 class="text-center mb-5 section-title">Galeri Produk Kami</h2>
@@ -310,7 +434,12 @@
                         <div class="overlay-text">Lihat Produk</div>
                         <div class="card-body text-center">
                             <h5 class="card-title">Paving Block</h5>
-                            <p class="card-text">Beton precast berkualitas tinggi untuk area jalan dan taman.</p>
+                            <p class="card-text text-muted">Solusi konstruksi terpercaya dengan kualitas beton terbaik.</p>
+                            <p class="card-text fw-bold text-success">Rp 500.000 / unit</p>
+                            <div class="d-grid gap-2 d-md-flex justify-content-center">
+                                <a href="#" class="btn btn-outline-success me-md-2">Lihat Detail</a>
+                                <a href="{% url 'login_pelanggan' %}" class="btn btn-success">Pesan</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -320,7 +449,12 @@
                         <div class="overlay-text">Lihat Produk</div>
                         <div class="card-body text-center">
                             <h5 class="card-title">U-Ditch</h5>
-                            <p class="card-text">Saluran drainase efisien untuk pengendalian air hujan.</p>
+                            <p class="card-text text-muted">Solusi konstruksi terpercaya dengan kualitas beton terbaik.</p>
+                            <p class="card-text fw-bold text-success">Rp 450.000 / unit</p>
+                            <div class="d-grid gap-2 d-md-flex justify-content-center">
+                                <a href="#" class="btn btn-outline-success me-md-2">Lihat Detail</a>
+                                <a href="{% url 'login_pelanggan' %}" class="btn btn-success">Pesan</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -330,7 +464,12 @@
                         <div class="overlay-text">Lihat Produk</div>
                         <div class="card-body text-center">
                             <h5 class="card-title">Kanstin</h5>
-                            <p class="card-text">Batas jalan yang kokoh dan tahan lama untuk area pedestrian.</p>
+                            <p class="card-text text-muted">Solusi konstruksi terpercaya dengan kualitas beton terbaik.</p>
+                            <p class="card-text fw-bold text-success">Rp 400.000 / unit</p>
+                            <div class="d-grid gap-2 d-md-flex justify-content-center">
+                                <a href="#" class="btn btn-outline-success me-md-2">Lihat Detail</a>
+                                <a href="{% url 'login_pelanggan' %}" class="btn btn-success">Pesan</a>
+                            </div>
                         </div>
                     </div>
                 </div>
