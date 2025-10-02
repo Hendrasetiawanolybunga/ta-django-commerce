@@ -85,6 +85,10 @@ class Transaksi(models.Model):
     # New fields for customer feedback
     feedback = models.TextField(verbose_name="Feedback", null=True, blank=True)
     fotofeedback = models.ImageField(upload_to='feedback_images/', verbose_name="Foto Feedback", null=True, blank=True)
+    
+    # New fields for payment deadline feature
+    waktu_checkout = models.DateTimeField(null=True, blank=True)
+    batas_waktu_bayar = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name_plural = "Transaksi"

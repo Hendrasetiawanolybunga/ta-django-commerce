@@ -11,6 +11,7 @@ from django.http import JsonResponse
 import json
 import os
 from django.conf import settings
+from datetime import timedelta
 
 # Untuk mengelola sesi login pelanggan
 def login_required_pelanggan(view_func):
@@ -404,6 +405,13 @@ def proses_pembayaran(request):
                         alamat_pengiriman=alamat_pengiriman
                     )
                     
+                    # SET WAKTU BATAS JIKA BELUM ADA
+                    if not transaksi.batas_waktu_bayar:
+                        transaksi.waktu_checkout = timezone.now()
+                        # Tentukan batas waktu pembayaran 24 jam ke depan
+                        transaksi.batas_waktu_bayar = transaksi.waktu_checkout + timedelta(hours=24) 
+                        transaksi.save()
+                    
                     detail_list = []  # To store details for later use
                     
                     for produk_id_str, jumlah in keranjang_belanja.items():
@@ -505,6 +513,19 @@ def proses_pembayaran(request):
     pelanggan_id = request.session.get('pelanggan_id')
     pelanggan = get_object_or_404(Pelanggan, pk=pelanggan_id)
     
+    # Create a temporary transaction to set payment deadline
+    transaksi = Transaksi(
+        pelanggan=pelanggan,
+        total=0,
+        status_transaksi='DIPROSES'
+    )
+    
+    # SET WAKTU BATAS JIKA BELUM ADA
+    if not transaksi.batas_waktu_bayar:
+        transaksi.waktu_checkout = timezone.now()
+        # Tentukan batas waktu pembayaran 24 jam ke depan
+        transaksi.batas_waktu_bayar = transaksi.waktu_checkout + timedelta(hours=24)
+    
     for produk_id_str, jumlah in keranjang_belanja.items():
         produk_id = int(produk_id_str)
         produk = get_object_or_404(Produk, pk=produk_id)
@@ -564,7 +585,8 @@ def proses_pembayaran(request):
         'total_sebelum_diskon': total_sebelum_diskon,
         'total_diskon': total_diskon,
         'total_setelah_diskon': total_sebelum_diskon - total_diskon,
-        'alamat_default': pelanggan.alamat
+        'alamat_default': pelanggan.alamat,
+        'transaksi': transaksi
     }
     return render(request, 'payment_form.html', context)
 
@@ -756,3 +778,29 @@ def laporan_pendapatan_bulanan(request):
     }
     
     return render(request, 'laporan_pendapatan_bulanan.html', context)
+
+def check_expired_payments():
+    """
+    Function to check for expired payments and update their status
+    This should be called periodically or before processing payments
+    """
+    from django.utils import timezone
+    from .models import Transaksi
+    
+    # Get all transactions with status 'DIPROSES' that have expired
+    expired_transactions = Transaksi.objects.filter(
+        status_transaksi='DIPROSES',
+        batas_waktu_bayar__lt=timezone.now()
+    )
+    
+    # Update their status to 'DIBATALKAN'
+    for transaction in expired_transactions:
+        transaction.status_transaksi = 'DIBATALKAN'
+        transaction.save()
+        
+        # Create notification for the customer
+        create_notification(
+            transaction.pelanggan,
+            "Pesanan Dibatalkan",
+            f"Pesanan #{transaction.id} telah dibatalkan karena melewati batas waktu pembayaran."
+        )

@@ -14,6 +14,20 @@
         </div>
     </div>
     
+    {% if transaksi.status_transaksi == 'DIPROSES' and transaksi.batas_waktu_bayar %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-danger text-center shadow-sm mb-4">
+                <h4 class="alert-heading"><i class="fas fa-hourglass-half me-2"></i> Batas Waktu Pembayaran!</h4>
+                Pesanan ini akan dibatalkan otomatis pada: 
+                <strong>{{ transaksi.batas_waktu_bayar|date:"d M Y, H:i" }} WIB</strong>.
+                <br>
+                Mohon segera unggah bukti pembayaran.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     <div class="row">
         <div class="col-lg-8">
             <div class="card card-custom">
