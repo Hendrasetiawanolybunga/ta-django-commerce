@@ -398,24 +398,19 @@
                 <div class="card discount-card shadow-lg h-100 border-0" style="background-color: #059212;">
                     <div class="card-body text-white text-center p-5">
                         <div class="mb-4">
-                            <i class="fas fa-hand-holding-usd fa-3x me-3 feature-icon" style="color: #FFC107;"></i>
+                           
                             <i class="fas fa-birthday-cake fa-3x me-3 feature-icon" style="color: #FFC107;"></i>
-                            <i class="fas fa-star fa-3x feature-icon" style="color: #FFC107;"></i>
+        
                         </div>
-                        
-                        <h3 class="card-title fw-bold mb-4" style="font-size: 2rem;">
-                            Diskon Eksklusif Ganda Khusus Pelanggan Loyal
-                        </h3>
+            
                         
                         <p class="card-text lead fw-bold" style="font-size: 1.5rem;">
-                            Dapatkan **Potongan Harga Tambahan Spesial** sebagai apresiasi, berlaku **hanya** untuk Pelanggan yang telah mencapai Total Belanja Kumulatif **Diatas Rp5.000.000** *sekaligus* merayakan **Hari Ulang Tahun Anda**.
+                            Sebagai apresiasi tertinggi, dapatkan Potongan Harga Eksklusif sebesar 10% yang berlaku hanya untuk pelanggan setia kami yang telah mencapai total belanja kumulatif di atas Rp5.000.000, tepat di hari perayaan Ulang Tahun Anda.
                         </p>
                         
                         <p class="mt-3 fst-italic">Syarat ganda ini memastikan penawaran terbaik hanya diterima oleh pelanggan paling setia.</p>
                         
-                        <a href="{% url 'register_pelanggan' %}" class="btn btn-warning text-dark mt-4 px-5 py-3 fw-bold rounded-pill shadow-lg">
-                            <i class="fas fa-user-plus me-2"></i> Aktifkan Keuntungan Anda Sekarang
-                        </a>
+                    
                     </div>
                 </div>
             </div>
@@ -428,51 +423,19 @@
         <div class="container">
             <h2 class="text-center mb-5 section-title">Galeri Produk Kami</h2>
             <div class="row g-4">
+                {% for p in produk %}
                 <div class="col-md-4">
-                    <div class="card product-card h-100 shadow-sm border-0" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{% static 'images/galeri/produk1.jpeg' %}">
-                        <img src="{% static 'images/galeri/produk1.jpeg' %}" class="card-img-top gallery-img" alt="Paving Block">
+                    <div class="card product-card h-100 shadow-sm border-0" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{{ p.foto_produk.url }}">
+                        <img src="{{ p.foto_produk.url }}" class="card-img-top gallery-img" alt="{{ p.nama_produk }}">
                         <div class="overlay-text">Lihat Produk</div>
                         <div class="card-body text-center">
-                            <h5 class="card-title">Paving Block</h5>
-                            <p class="card-text text-muted">Solusi konstruksi terpercaya dengan kualitas beton terbaik.</p>
-                            <p class="card-text fw-bold text-success">Rp 500.000 / unit</p>
-                            <div class="d-grid gap-2 d-md-flex justify-content-center">
-                                <a href="#" class="btn btn-outline-success me-md-2">Lihat Detail</a>
-                                <a href="{% url 'login_pelanggan' %}" class="btn btn-success">Pesan</a>
-                            </div>
+                            <h5 class="card-title">{{ p.nama_produk }}</h5>
+                            <p class="card-text text-muted">{{ p.deskripsi_produk|truncatewords:15 }}</p>
+                            <p class="card-text fw-bold text-success">Rp {{ p.harga_produk|intcomma }} / unit</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card product-card h-100 shadow-sm border-0" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{% static 'images/galeri/produk2.jpeg' %}">
-                        <img src="{% static 'images/galeri/produk2.jpeg' %}" class="card-img-top gallery-img" alt="U-Ditch">
-                        <div class="overlay-text">Lihat Produk</div>
-                        <div class="card-body text-center">
-                            <h5 class="card-title">U-Ditch</h5>
-                            <p class="card-text text-muted">Solusi konstruksi terpercaya dengan kualitas beton terbaik.</p>
-                            <p class="card-text fw-bold text-success">Rp 450.000 / unit</p>
-                            <div class="d-grid gap-2 d-md-flex justify-content-center">
-                                <a href="#" class="btn btn-outline-success me-md-2">Lihat Detail</a>
-                                <a href="{% url 'login_pelanggan' %}" class="btn btn-success">Pesan</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card product-card h-100 shadow-sm border-0" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{% static 'images/galeri/produk3.jpeg' %}">
-                        <img src="{% static 'images/galeri/produk3.jpeg' %}" class="card-img-top gallery-img" alt="Kanstin">
-                        <div class="overlay-text">Lihat Produk</div>
-                        <div class="card-body text-center">
-                            <h5 class="card-title">Kanstin</h5>
-                            <p class="card-text text-muted">Solusi konstruksi terpercaya dengan kualitas beton terbaik.</p>
-                            <p class="card-text fw-bold text-success">Rp 400.000 / unit</p>
-                            <div class="d-grid gap-2 d-md-flex justify-content-center">
-                                <a href="#" class="btn btn-outline-success me-md-2">Lihat Detail</a>
-                                <a href="{% url 'login_pelanggan' %}" class="btn btn-success">Pesan</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {% endfor %}
             </div>
         </div>
     </section>

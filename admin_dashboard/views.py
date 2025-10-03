@@ -32,8 +32,12 @@ def beranda_umum(request):
             if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
                 galeri_images.append(f'images/galeri/{filename}')
     
+    # Get the latest 6 products from the database - using the simplest query
+    produk = Produk.objects.all().order_by('-id')[:6]
+    
     context = {
-        'galeri_images': galeri_images[:3]  # Limit to 3 images
+        'galeri_images': galeri_images[:3],  # Limit to 3 images
+        'produk': produk  # Use the same variable name as in product_list.html
     }
     return render(request, 'beranda_umum.html', context)
 
