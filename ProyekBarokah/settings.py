@@ -29,6 +29,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.humanize',
     'import_export',
+    'django_tables2',
+    'django_filters',
     'admin_dashboard',
 ]
 
@@ -55,6 +57,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'admin_dashboard.context_processors.transaksi_notification_count',
             ],
         },
     },
@@ -155,6 +158,27 @@ JAZZMIN_SETTINGS = {
         "admin_dashboard.DetailTransaksi",
         "admin_dashboard.Pelanggan",
     ],
+    "custom_links": {
+        "admin_dashboard": [
+            {
+                "name": "Laporan Transaksi", 
+                "url": "laporan_transaksi", 
+                "icon": "fas fa-cash-register"
+            },
+            {
+                "name": "Laporan Produk Terlaris", 
+                "url": "laporan_produk_terlaris", 
+                "icon": "fas fa-medal"
+            },
+        ],
+    },
+    "model_settings": {
+        "admin_dashboard.Transaksi": {
+            "name": "Transaksi",
+            "icon": "fas fa-shopping-cart",
+            "badge": "new_transaction_count",
+        }
+    },
 }
 
 JAZZMIN_UI_TWEAKS = {

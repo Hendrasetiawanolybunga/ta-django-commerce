@@ -1,0 +1,70 @@
+{% extends 'admin/base_site.html' %}
+{% load django_tables2 %}
+{% load static %}
+
+{% block title %}Laporan Transaksi{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1>Laporan Transaksi</h1>
+            
+            <!-- Filter Form -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title">Filter Data</h3>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="form">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    {{ filter.form.status_transaksi.label_tag }}
+                                    {{ filter.form.status_transaksi }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    {{ filter.form.tanggal_transaksi__gte.label_tag }}
+                                    {{ filter.form.tanggal_transaksi__gte }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    {{ filter.form.tanggal_transaksi__lte.label_tag }}
+                                    {{ filter.form.tanggal_transaksi__lte }}
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Terapkan Filter</button>
+                        <a href="{% url 'laporan_transaksi' %}" class="btn btn-secondary">Reset</a>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- PDF Export Button -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title">Ekspor Data</h3>
+                </div>
+                <div class="card-body">
+                    <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% else %}{% endif %}_pdf=true" class="btn btn-success" target="_blank">
+                        <i class="fas fa-file-pdf"></i> Cetak PDF
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Transaction Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Data Transaksi</h3>
+                </div>
+                <div class="card-body">
+                    {% render_table table %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

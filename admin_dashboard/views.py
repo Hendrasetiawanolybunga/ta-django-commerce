@@ -779,3 +779,267 @@ def check_expired_payments():
             "Pesanan Dibatalkan",
             f"Pesanan #{transaction.id} telah dibatalkan karena melewati batas waktu pembayaran."
         )
+
+# Import statements for the new view
+import django_tables2 as tables
+from django_tables2 import RequestConfig
+from django_tables2.export import TableExport
+from django.http import HttpResponse
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib import colors
+from io import BytesIO
+from .tables import TransaksiTable
+from .filters import TransaksiFilter
+from .models import Transaksi
+
+def laporan_transaksi(request):
+    """
+    View to generate transaction report with filtering and table features
+    """
+    # Initialize the filter with request data and all transactions queryset
+    filter = TransaksiFilter(request.GET, queryset=Transaksi.objects.all())
+    
+    # Initialize the table with the filtered queryset
+    table = TransaksiTable(filter.qs)
+    
+    # Configure the table with request for sorting and pagination
+    RequestConfig(request, paginate={"per_page": 25}).configure(table)
+    
+    # Check if this is a PDF export request
+    if request.GET.get('_pdf') == 'true':
+        # Create a PDF buffer
+        buffer = BytesIO()
+        
+        # Create the PDF object, using the buffer as its "file."
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        
+        # Define styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=30,
+            alignment=1  # Center alignment
+        )
+        
+        # Add title
+        title = Paragraph("Laporan Transaksi - Barokah Jaya Beton", title_style)
+        elements.append(title)
+        elements.append(Spacer(1, 0.2*inch))
+        
+        # Prepare data for the table
+        table_data = [['No', 'Tanggal', 'Nama Pelanggan', 'Detail Produk', 'Total Harga']]
+        
+        # Get all data without pagination for PDF
+        all_data = filter.qs
+        # Definisikan daftar status yang dianggap sebagai pendapat
+        PAID_STATUSES = ['DIBAYAR', 'DIKIRIM', 'SELESAI']
+        
+        # Hitung Total Pendapatan hanya untuk transaksi dengan status pembayaran yang berhasil
+        total_pendapatan = 0
+        paid_transactions = all_data.filter(status_transaksi__in=PAID_STATUSES)
+        for transaksi in paid_transactions:
+            total_pendapatan += transaksi.total if transaksi.total else 0
+        
+        for index, transaksi in enumerate(all_data, 1):
+            # Format tanggal tanpa waktu
+            tanggal_formatted = transaksi.tanggal.strftime('%d/%m/%Y') if transaksi.tanggal else ''
+            
+            # Dapatkan detail produk
+            detail_produk_list = []
+            detail_transaksi = transaksi.detailtransaksi_set.all()
+            for detail in detail_transaksi:
+                detail_produk_list.append(f"{detail.produk.nama_produk} (x{detail.jumlah_produk})")
+            
+            detail_produk_str = '\n'.join(detail_produk_list) if detail_produk_list else '-'
+            
+            table_data.append([
+                str(index),
+                tanggal_formatted,
+                str(transaksi.pelanggan.nama_pelanggan if transaksi.pelanggan else ''),
+                detail_produk_str,
+                f"Rp {transaksi.total:,.0f}" if transaksi.total else "Rp 0"
+            ])
+        
+        # Create the table
+        pdf_table = Table(table_data)
+        pdf_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # Align text to top for multi-line content
+        ]))
+        
+        elements.append(pdf_table)
+        
+        # Add total pendapatan
+        elements.append(Spacer(1, 0.2*inch))
+        total_pendapatan_para = Paragraph(f"<b>Total Pendapatan Keseluruhan: Rp {total_pendapatan:,.0f}</b>", styles['Normal'])
+        elements.append(total_pendapatan_para)
+        
+        # Build the PDF
+        doc.build(elements)
+        
+        # Get the value of the BytesIO buffer and write it to the response
+        pdf_value = buffer.getvalue()
+        buffer.close()
+        
+        # Create the HTTP response
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="laporan_transaksi.pdf"'
+        response.write(pdf_value)
+        
+        return response
+    
+    context = {
+        'filter': filter,
+        'table': table
+    }
+    
+    return render(request, 'admin_dashboard/laporan_transaksi.html', context)
+
+# Import statements for the best selling products report
+from django.db.models import Sum, Q
+from .tables import ProdukTerlarisTable
+from .filters import ProdukTerlarisFilter
+from .models import DetailTransaksi
+
+def laporan_produk_terlaris(request):
+    """
+    View to generate best selling products report with filtering and table features
+    """
+    # Initialize the filter with request data
+    filter = ProdukTerlarisFilter(request.GET, queryset=Produk.objects.all())
+    
+    # Get the filtered queryset
+    filtered_produk = filter.qs
+    
+    # Apply date filters if provided
+    tanggal_gte = request.GET.get('tanggal_transaksi__gte')
+    tanggal_lte = request.GET.get('tanggal_transaksi__lte')
+    
+    # Start with all products
+    produk_queryset = filtered_produk
+    
+    # Build the query for DetailTransaksi based on date filters
+    # Pastikan hanya menghitung untuk transaksi dengan status pembayaran yang berhasil
+    detail_transaksi_filter = Q(detailtransaksi__transaksi__status_transaksi__in=['DIBAYAR', 'DIKIRIM', 'SELESAI'])
+    
+    if tanggal_gte:
+        detail_transaksi_filter &= Q(detailtransaksi__transaksi__tanggal__gte=tanggal_gte)
+    
+    if tanggal_lte:
+        detail_transaksi_filter &= Q(detailtransaksi__transaksi__tanggal__lte=tanggal_lte)
+    
+    # Annotate with aggregated data
+    produk_queryset = produk_queryset.annotate(
+        total_kuantitas_terjual=Sum(
+            'detailtransaksi__jumlah_produk',
+            filter=detail_transaksi_filter
+        ),
+        total_pendapatan=Sum(
+            'detailtransaksi__sub_total',
+            filter=detail_transaksi_filter
+        )
+    ).filter(total_kuantitas_terjual__gt=0).order_by('-total_kuantitas_terjual')
+    
+    # Initialize the table with the annotated queryset
+    table = ProdukTerlarisTable(produk_queryset)
+    
+    # Configure the table with request for sorting and pagination
+    RequestConfig(request, paginate={"per_page": 25}).configure(table)
+    
+    # Check if this is a PDF export request
+    if request.GET.get('_pdf') == 'true':
+        # Create a PDF buffer
+        buffer = BytesIO()
+        
+        # Create the PDF object, using the buffer as its "file."
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        
+        # Define styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=30,
+            alignment=1  # Center alignment
+        )
+        
+        # Add title
+        title = Paragraph("Laporan Produk Terlaris - Barokah Jaya Beton", title_style)
+        elements.append(title)
+        elements.append(Spacer(1, 0.2*inch))
+        
+        # Prepare data for the table
+        table_data = [['No', 'Nama Produk', 'Total Kuantitas Terjual', 'Total Pendapatan']]
+        
+        # Get all data without pagination for PDF
+        all_data = produk_queryset
+        # Hitung total_pendapatan_keseluruhan menggunakan queryset yang sudah di-annotate
+        total_pendapatan_keseluruhan = 0
+        for index, produk in enumerate(all_data, 1):
+            pendapatan = produk.total_pendapatan if produk.total_pendapatan else 0
+            total_pendapatan_keseluruhan += pendapatan
+            
+            table_data.append([
+                str(index),
+                str(produk.nama_produk),
+                str(produk.total_kuantitas_terjual or 0),
+                f"Rp {pendapatan:,.0f}"
+            ])
+        
+        # Create the table
+        pdf_table = Table(table_data)
+        pdf_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        elements.append(pdf_table)
+        
+        # Add total pendapatan keseluruhan
+        elements.append(Spacer(1, 0.2*inch))
+        total_pendapatan_para = Paragraph(f"<b>Total Pendapatan Keseluruhan: Rp {total_pendapatan_keseluruhan:,.0f}</b>", styles['Normal'])
+        elements.append(total_pendapatan_para)
+        
+        # Build the PDF
+        doc.build(elements)
+        
+        # Get the value of the BytesIO buffer and write it to the response
+        pdf_value = buffer.getvalue()
+        buffer.close()
+        
+        # Create the HTTP response
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="laporan_produk_terlaris.pdf"'
+        response.write(pdf_value)
+        
+        return response
+    
+    context = {
+        'filter': filter,
+        'table': table
+    }
+    
+    return render(request, 'admin_dashboard/laporan_produk_terlaris.html', context)
