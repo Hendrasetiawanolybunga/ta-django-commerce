@@ -25,6 +25,5 @@ urlpatterns = [
     path('notifikasi/', views.notifikasi, name='notifikasi'),     # URL untuk halaman Notifikasi
     path('akun/', views.akun, name='akun'),                       # URL untuk halaman Akun
     
-    # URLs untuk laporan
-    path('laporan/pendapatan/bulanan/', views.laporan_pendapatan_bulanan, name='laporan_pendapatan_bulanan'),
+
 ]

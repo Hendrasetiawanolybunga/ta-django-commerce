@@ -425,7 +425,7 @@
             <div class="row g-4">
                 {% for p in produk %}
                 <div class="col-md-4">
-                    <div class="card product-card h-100 shadow-sm border-0" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{{ p.foto_produk.url }}">
+                    <div class="card product-card h-100 shadow-sm border-0" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{{ p.foto_produk.url }}" data-teks= "{{p.deskripsi_produk}}">
                         <img src="{{ p.foto_produk.url }}" class="card-img-top gallery-img" alt="{{ p.nama_produk }}">
                         <div class="overlay-text">Lihat Produk</div>
                         <div class="card-body text-center">
@@ -537,6 +537,7 @@
                 </div>
                 <div class="modal-body text-center">
                     <img id="modalImage" src="" class="img-fluid" alt="Detail Gambar">
+                    <p class="card-text text-muted">{{ p.deskripsi_produk }}</p>
                 </div>
             </div>
         </div>

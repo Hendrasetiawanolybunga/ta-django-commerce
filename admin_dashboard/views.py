@@ -754,35 +754,6 @@ def get_cart_item_count(request):
     except Exception:
         return 0
 
-def laporan_pendapatan_bulanan(request):
-    """
-    View to generate monthly revenue report
-    """
-    # Aggregate total revenue by month for paid transactions
-    monthly_revenue = Transaksi.objects.filter(
-        status_transaksi='DIBAYAR'
-    ).annotate(
-        month=TruncMonth('tanggal')
-    ).values('month').annotate(
-        total_revenue=Sum('total')
-    ).order_by('month')
-    
-    # Format data for charting
-    labels = []
-    data = []
-    
-    for item in monthly_revenue:
-        labels.append(item['month'].strftime('%B %Y'))
-        data.append(float(item['total_revenue'] or 0))
-    
-    context = {
-        'labels': json.dumps(labels),
-        'data': json.dumps(data),
-        'monthly_revenue': monthly_revenue
-    }
-    
-    return render(request, 'laporan_pendapatan_bulanan.html', context)
-
 def check_expired_payments():
     """
     Function to check for expired payments and update their status

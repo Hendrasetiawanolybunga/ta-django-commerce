@@ -1,6 +1,14 @@
 {% extends "admin/change_list.html" %}
 {% load admin_urls static admin_list %}
 
+{% block content_title %}
+    {% if new_transactions_count and new_transactions_count > 0 %}
+        <h1>Transaksi <span class="badge bg-danger">{{ new_transactions_count }}</span></h1>
+    {% else %}
+        <h1>Transaksi</h1>
+    {% endif %}
+{% endblock %}
+
 {% block extrahead %}
 {{ block.super }}
 <style>

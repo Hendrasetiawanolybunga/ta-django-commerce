@@ -10,24 +10,8 @@ from django import forms
 from django.core.exceptions import ValidationError
 
 from .models import Admin, Pelanggan, Produk, Transaksi, DetailTransaksi, DiskonPelanggan, Notifikasi, Kategori
-from import_export import resources
-from import_export.admin import ImportExportModelAdmin
 
-# Resource classes for export functionality
-class PelangganResource(resources.ModelResource):
-    class Meta:
-        model = Pelanggan
-        fields = ('id', 'nama_pelanggan', 'alamat', 'tanggal_lahir', 'no_hp', 'username')
 
-class ProdukResource(resources.ModelResource):
-    class Meta:
-        model = Produk
-        fields = ('id', 'nama_produk', 'deskripsi_produk', 'stok_produk', 'harga_produk', 'kategori__nama_kategori')
-
-class TransaksiResource(resources.ModelResource):
-    class Meta:
-        model = Transaksi
-        fields = ('id', 'tanggal', 'total', 'ongkir', 'status_transaksi', 'pelanggan__nama_pelanggan', 'alamat_pengiriman')
 
 # Helper function to create notifications
 def create_notification(pelanggan, tipe_pesan, isi_pesan):
@@ -81,9 +65,8 @@ class AdminAdmin(BaseModelAdmin):
 
 # Daftarkan model Pelanggan
 @admin.register(Pelanggan)
-class PelangganAdmin(ImportExportModelAdmin, BaseModelAdmin):
-    resource_class = PelangganResource
-    list_display = ['username', 'nama_pelanggan', 'no_hp', 'total_belanja_admin', 'is_ultah', 'set_diskon_button', 'get_actions_links']
+class PelangganAdmin(BaseModelAdmin):
+    list_display = ['username', 'nama_pelanggan', 'no_hp', 'is_ultah', 'set_diskon_button', 'get_actions_links']
     search_fields = ['username', 'nama_pelanggan', 'no_hp']
     list_filter = (IsLoyalFilter,)
     actions = ['laporan_pelanggan_loyal']
@@ -199,8 +182,7 @@ class KategoriAdmin(BaseModelAdmin):
 
 # Daftarkan model Produk
 @admin.register(Produk)
-class ProdukAdmin(ImportExportModelAdmin, BaseModelAdmin):
-    resource_class = ProdukResource
+class ProdukAdmin(BaseModelAdmin):
     list_display = ['nama_produk', 'kategori', 'harga_produk', 'stok_produk', 'get_actions_links']
     search_fields = ['nama_produk']
     list_filter = ['kategori', 'stok_produk']
@@ -269,13 +251,12 @@ class DetailTransaksiInline(admin.TabularInline):
     
 # --- Pendaftaran Transaksi dengan Inline dan Logika Stok/Total ---
 @admin.register(Transaksi)
-class TransaksiAdmin(ImportExportModelAdmin, BaseModelAdmin):
-    resource_class = TransaksiResource
+class TransaksiAdmin(BaseModelAdmin):
     list_display = ['nomor', 'pelanggan', 'tanggal', 'status_transaksi_interactive', 'ongkir', 'bukti_bayar_display', 'combined_actions']
-    list_filter = ['status_transaksi', 'tanggal']
+    list_filter = ['status_transaksi']
     search_fields = ['pelanggan__nama_pelanggan']
     inlines = [DetailTransaksiInline]
-    actions = ['ubah_status_diproses', 'ubah_status_dibayar', 'ubah_status_dikirim', 'ubah_status_selesai', 'ubah_status_dibatalkan', 'laporan_total_pendapatan']
+    actions = ['ubah_status_diproses', 'ubah_status_dibayar', 'ubah_status_dikirim', 'ubah_status_selesai', 'ubah_status_dibatalkan']
     list_per_page = 6
     
     @admin.display(description='No')
@@ -397,9 +378,9 @@ class TransaksiAdmin(ImportExportModelAdmin, BaseModelAdmin):
             create_notification(
                 obj.pelanggan,
                 "Ongkos Kirim Diperbarui",
-                f"Ongkos kirim untuk pesanan Anda dengan ID #{obj.id} telah diperbarui menjadi Rp {obj.ongkir:,.0f}. "
-                f"Total pembayaran Anda adalah Rp {obj.total + obj.ongkir:,.0f} (produk: Rp {obj.total:,.0f} + ongkir: Rp {obj.ongkir:,.0f}). "
-                f"Silakan bayar sesuai total tersebut saat produk diantar."
+                f"Ongkos kirim untuk pesanan Anda dengan ID #{obj.id} telah diperbarui. "
+                f"Jumlah Ongkir yang harus Anda bayarkan saat produk diantar adalah  Rp {obj.ongkir:,.0f}. "
+               
             )
 
     def save_related(self, request, form, formsets, change):
