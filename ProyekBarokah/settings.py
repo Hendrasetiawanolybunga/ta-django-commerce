@@ -14,7 +14,7 @@ SECRET_KEY = 'django-insecure-j+fa$j-w-x7ua4upzterye(*1g7j5clih!9ym)0oo$12wf_bf%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'bluecode2004.pythonanywhere.com']
 
 
 # Application definition
@@ -125,17 +125,28 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
+# --- JAZZMIN SETTINGS ---
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'admin_dashboard.Admin'
+
 JAZZMIN_SETTINGS = {
-    "site_title": "Barokah Jaya Beton",
+    "site_title": "Barokah Jaya Beton Admin",
     "site_header": "Barokah Jaya Beton",
     "site_brand": "Barokah Jaya Beton",
     "site_logo": None,
+    
+    # Menghilangkan Group dan Model Admin (sesuai permintaan user untuk kesederhanaan)
     "hide_models": [
         "auth.Group",
+        "admin_dashboard.Admin", # Menyembunyikan model Admin yang Anda buat
+        "admin_dashboard.DetailTransaksi", # Biasanya tidak perlu diakses langsung
     ],
+    
+    # 1. Mengatur Halaman Index Default ke Dashboard Analitik
+    "welcome_sign": "Selamat Datang di Dashboard Admin Barokah Jaya Beton",
+    "index_title": "Dashboard Analitik",
+    
     "icons": {
         "auth": "fas fa-users-cog",
         "auth.user": "fas fa-user",
@@ -147,19 +158,30 @@ JAZZMIN_SETTINGS = {
         "admin_dashboard.Transaksi": "fas fa-shopping-cart",
         "admin_dashboard.DetailTransaksi": "fas fa-receipt",
         "admin_dashboard.Notifikasi": "fas fa-bell",
-        "admin_dashboard.admin": "fas fa-user",
     },
+    
+    # 🚨 MODIFIKASI: Mengatur Urutan Menu (order_with_respect_to)
+    # KUNCI: Menambahkan "admin_dashboard" di posisi pertama agar custom_links di-prioritaskan
     "order_with_respect_to": [
-        "admin_dashboard.Produk",
-        "admin_dashboard.Kategori",
-        "admin_dashboard.DiskonPelanggan",
-        "admin_dashboard.Notifikasi",
-        "admin_dashboard.Transaksi",
-        "admin_dashboard.DetailTransaksi",
-        "admin_dashboard.Pelanggan",
+        "admin_dashboard",             # <-- Menu Kustom Ditarik ke ATAS
+        "admin_dashboard.Kategori",    # Kategori
+        "admin_dashboard.Produk",      # Produk
+        "admin_dashboard.Pelanggan",   # Pelanggan
+        "admin_dashboard.Transaksi",   # Transaksi (Induk)
+        "admin_dashboard.DiskonPelanggan",# Diskon
+        "admin_dashboard.Notifikasi",  # Notifikasi
+        "auth", # Menarik model bawaan Django ke bawah (opsional, untuk memastikan auth.User dkk tetap di bawah)
     ],
+    
+    # 3. Custom Links - Pindahkan Dashboard Analitik ke Paling Atas
     "custom_links": {
         "admin_dashboard": [
+            {
+                # PENTING: Dashboard Analitik sekarang di urutan pertama
+                "name": "Dashboard Analitik", 
+                "url": "dashboard_analitik", 
+                "icon": "fas fa-chart-bar"
+            },
             {
                 "name": "Laporan Transaksi", 
                 "url": "laporan_transaksi", 
@@ -172,15 +194,25 @@ JAZZMIN_SETTINGS = {
             },
         ],
     },
+    
     "model_settings": {
         "admin_dashboard.Transaksi": {
             "name": "Transaksi",
             "icon": "fas fa-shopping-cart",
             "badge": "new_transaction_count",
-        }
+        },
+        # Mengubah nama menu bawaan 'Admin' menjadi sesuatu yang lebih umum (opsional)
+        "admin_dashboard.Admin": {
+            "name": "Pengguna Sistem",
+        },
     },
-}
 
+    # 4. Menghilangkan Link User (Admin/User Name) di Navbar Kanan Atas
+    # Set ini ke False agar menu setting/logout user tidak muncul
+    "show_ui_builder": "True",
+    "changeform_format": "horizontal_tabs",
+    "search_model": ["admin_dashboard.Produk", "admin_dashboard.Pelanggan"]
+}
 JAZZMIN_UI_TWEAKS = {
     "navbar_small_text": False,
     "footer_small_text": False,
@@ -213,6 +245,3 @@ JAZZMIN_UI_TWEAKS = {
     },
     "actions_sticky_top": False
 }
-
-
-

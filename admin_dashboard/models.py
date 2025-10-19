@@ -23,6 +23,8 @@ class Pelanggan(models.Model):
     no_hp = models.CharField(max_length=20, verbose_name="Nomor HP")
     username = models.CharField(max_length=150, unique=True, verbose_name="Username")
     password = models.CharField(max_length=128, verbose_name="Password") # Django akan menangani hash password
+    # Tambahan pada Pelanggan Model
+    email = models.EmailField(max_length=254, unique=True, null=True, blank=True)
 
     class Meta:
         verbose_name_plural = "Pelanggan"

@@ -1,0 +1,149 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}Dashboard Analitik{% endblock %}
+
+{% block extrahead %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1>Dashboard Analitik</h1>
+            <p class="lead">Analisis data penjualan dan pelanggan</p>
+        </div>
+    </div>
+
+    <!-- Monthly Revenue Chart -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Pendapatan Bulanan (6 Bulan Terakhir)</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Made chart container responsive -->
+                    <div class="chart-container" style="position: relative; height:40vh; width:100%">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Improved layout for products and customers tables -->
+    <div class="row mt-4">
+        <!-- Top Products Table -->
+        <div class="col-lg-6 col-md-12 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h3 class="card-title">5 Produk Terlaris</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Made table responsive -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Nama Produk</th>
+                                    <th>Kuantitas Terjual</th>
+                                    <th>Total Pendapatan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in top_products %}
+                                <tr>
+                                    <td>{{ product.produk__nama_produk }}</td>
+                                    <td>{{ product.total_quantity }}</td>
+                                    <td>Rp {{ product.total_revenue|floatformat:0 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">Tidak ada data</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Customers Table -->
+        <div class="col-lg-6 col-md-12 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h3 class="card-title">3 Pelanggan Loyal</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Made table responsive -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Nama Pelanggan</th>
+                                    <th>Total Pembelian</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for customer in top_customers %}
+                                <tr>
+                                    <td>{{ customer.pelanggan__nama_pelanggan }}</td>
+                                    <td>Rp {{ customer.total_spent|floatformat:0 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center">Tidak ada data</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Monthly Revenue Chart
+    var ctx = document.getElementById('revenueChart').getContext('2d');
+    var monthlyRevenue = {{ monthly_revenue|safe }};
+    
+    var labels = monthlyRevenue.map(item => item.month);
+    var data = monthlyRevenue.map(item => item.total);
+    
+    var revenueChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Total Pendapatan (Rp)',
+                data: data,
+                backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            // Format currency in chart
+                            return 'Rp ' + value.toLocaleString('id-ID');
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

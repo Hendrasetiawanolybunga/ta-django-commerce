@@ -28,6 +28,7 @@ urlpatterns = [
     # URLs untuk laporan
     path('laporan/transaksi/', views.laporan_transaksi, name='laporan_transaksi'),
     path('laporan/produk-terlaris/', views.laporan_produk_terlaris, name='laporan_produk_terlaris'),
-
-
+    
+    # URL for analytics dashboard
+    path('dashboard-analitik/', views.dashboard_analitik, name='dashboard_analitik'),
 ]

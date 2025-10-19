@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.db.models import Sum, F, Prefetch
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render # 🚨 MODIFIKASI: Ditambahkan 'render'
 from django.utils.html import format_html
 from django.urls import path, reverse
 from datetime import date
@@ -11,6 +11,27 @@ from django.core.exceptions import ValidationError
 
 from .models import Admin, Pelanggan, Produk, Transaksi, DetailTransaksi, DiskonPelanggan, Notifikasi, Kategori
 
+
+# 🔔 MODIFIKASI: DUMMY VIEW/PLACEHOLDER UNTUK MEMPERBAIKI MASALAH SIDEBAR
+# Anda HARUS membuat file views.py dan fungsi view yang sebenarnya.
+# Fungsi ini memastikan template admin yang benar dirender, sehingga sidebar tampil.
+try:
+    from .views import dashboard_analitik_view, laporan_transaksi_view, laporan_produk_terlaris_view
+except ImportError:
+    # Fungsi placeholder jika views.py belum dibuat.
+    def dummy_view(request):
+        # Menggunakan 'admin/base.html' akan menjaga tampilan dan sidebar Jazzmin.
+        # Catatan: Perlu setidaknya 'title' agar template base berfungsi dengan benar.
+        context = {
+            'title': 'Halaman Kustom Admin (Placeholder)', 
+            'site_header': 'Barokah Jaya Beton', 
+            'site_title': 'Barokah Jaya Beton Admin'
+        }
+        return render(request, 'admin/base.html', context)
+        
+    dashboard_analitik_view = dummy_view
+    laporan_transaksi_view = dummy_view
+    laporan_produk_terlaris_view = dummy_view
 
 
 # Helper function to create notifications
@@ -166,6 +187,12 @@ class PelangganAdmin(BaseModelAdmin):
         urls = super().get_urls()
         custom_urls = [
             path('<int:pelanggan_id>/set_diskon/', self.admin_site.admin_view(self.process_set_diskon), name='admin_dashboard_setdiskon'),
+            
+            # 💡 MODIFIKASI: Integrasikan URL Kustom ke AdminSite
+            # Menggunakan self.admin_site.admin_view() memastikan template admin dirender (termasuk sidebar).
+            path('dashboard_analitik/', self.admin_site.admin_view(dashboard_analitik_view), name='dashboard_analitik'),
+            path('laporan_transaksi/', self.admin_site.admin_view(laporan_transaksi_view), name='laporan_transaksi'),
+            path('laporan_produk_terlaris/', self.admin_site.admin_view(laporan_produk_terlaris_view), name='laporan_produk_terlaris'),
         ]
         return custom_urls + urls
 
@@ -380,7 +407,7 @@ class TransaksiAdmin(BaseModelAdmin):
                 "Ongkos Kirim Diperbarui",
                 f"Ongkos kirim untuk pesanan Anda dengan ID #{obj.id} telah diperbarui. "
                 f"Jumlah Ongkir yang harus Anda bayarkan saat produk diantar adalah  Rp {obj.ongkir:,.0f}. "
-               
+                
             )
 
     def save_related(self, request, form, formsets, change):

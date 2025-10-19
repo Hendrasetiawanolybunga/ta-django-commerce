@@ -5,39 +5,39 @@
 {% block title %}Daftar Pesanan{% endblock %}
 
 {% block content %}
-<div class="container my-5">
+<div class="container my-5 my-sm-3">
     <div class="row">
         <div class="col-12">
-            <h2 class="mb-4 text-center fw-bold" style="color: #059212;">Daftar Pesanan Anda</h2>
+            <h2 class="mb-4 text-center fw-bold fs-3 fs-sm-2" style="color: #059212;">Daftar Pesanan Anda</h2>
             {% if pesanan %}
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
+                    <table class="table table-bordered table-hover small">
                         <thead class="table-success">
                             <tr>
-                                <th>ID Pesanan</th>
-                                <th>Nama Pelanggan</th>
-                                <th>Tanggal Transaksi</th>
-                                <th>Total</th>
-                                <th>Ongkos Kirim</th>
-                                <th>Status</th>
-                                <th>Aksi</th>
+                                <th class="fs-7 fs-sm-8">ID Pesanan</th>
+                                <th class="fs-7 fs-sm-8">Nama Pelanggan</th>
+                                <th class="fs-7 fs-sm-8">Tanggal Transaksi</th>
+                                <th class="fs-7 fs-sm-8">Total</th>
+                                <th class="fs-7 fs-sm-8">Ongkos Kirim</th>
+                                <th class="fs-7 fs-sm-8">Status</th>
+                                <th class="fs-7 fs-sm-8">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for trans in pesanan %}
                             <tr>
-                                <td>{{ trans.id }}</td>
-                                <td>{{ trans.pelanggan.nama_pelanggan }}</td>
-                                <td>{{ trans.tanggal|date:"d M Y H:i" }}</td>
-                                <td>Rp {{ trans.total|intcomma }}</td>
-                                <td>Rp {{ trans.ongkir|intcomma }}</td>
+                                <td class="fs-6 fs-sm-7">{{ trans.id }}</td>
+                                <td class="fs-6 fs-sm-7">{{ trans.pelanggan.nama_pelanggan }}</td>
+                                <td class="fs-6 fs-sm-7">{{ trans.tanggal|date:"d M Y H:i" }}</td>
+                                <td class="fs-6 fs-sm-7">Rp {{ trans.total|intcomma }}</td>
+                                <td class="fs-6 fs-sm-7">Rp {{ trans.ongkir|intcomma }}</td>
                                 <td>
-                                    <span class="badge" style="background-color: #059212; color: #ECFFE6;">
+                                    <span class="badge fs-7 fs-sm-8" style="background-color: #059212; color: #ECFFE6;">
                                         {{ trans.status_transaksi }}
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="{% url 'detail_pesanan' trans.id %}" class="btn btn-custom btn-sm">
+                                    <a href="{% url 'detail_pesanan' trans.id %}" class="btn btn-custom btn-sm fs-7 fs-sm-8">
                                          <i class="fas fa-eye"></i>
                                     </a>
                                 </td>

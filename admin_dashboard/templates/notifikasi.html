@@ -5,28 +5,28 @@
 {% block title %}Notifikasi{% endblock %}
 
 {% block content %}
-<div class="container my-5">
+<div class="container my-5 my-sm-3">
     <div class="row">
         <div class="col-12">
-            <h2 class="mb-4 text-center fw-bold" style="color: #059212;">Notifikasi Anda</h2>
+            <h2 class="mb-4 text-center fw-bold fs-3 fs-sm-2" style="color: #059212;">Notifikasi Anda</h2>
             
             {% if notifikasi_list %}
             <div class="table-responsive">
-                <table class="table table-striped table-hover">
+                <table class="table table-striped table-hover small">
                     <thead class="table-success">
                         <tr>
-                            <th scope="col">Tanggal</th>
-                            <th scope="col">Tipe Pesan</th>
-                            <th scope="col">Isi Pesan</th>
-                            <th scope="col">Status</th>
+                            <th scope="col" class="fs-7 fs-sm-8">Tanggal</th>
+                            <th scope="col" class="fs-7 fs-sm-8">Tipe Pesan</th>
+                            <th scope="col" class="fs-7 fs-sm-8">Isi Pesan</th>
+                            <th scope="col" class="fs-7 fs-sm-8">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for notif in notifikasi_list %}
                         <tr class="{% if not notif.is_read %}table-success{% endif %}">
-                            <td>{{ notif.created_at|date:"d M Y H:i" }}</td>
-                            <td>{{ notif.tipe_pesan }}</td>
-                            <td>
+                            <td class="fs-6 fs-sm-7">{{ notif.created_at|date:"d M Y H:i" }}</td>
+                            <td class="fs-6 fs-sm-7">{{ notif.tipe_pesan }}</td>
+                            <td class="fs-6 fs-sm-7">
                                 {% if notif.isi_pesan %}
                                     {{ notif.isi_pesan|safe }}
                                 {% else %}
@@ -35,9 +35,9 @@
                             </td>
                             <td>
                                 {% if notif.is_read %}
-                                    <span class="badge bg-secondary">Sudah Dibaca</span>
+                                    <span class="badge bg-secondary fs-7 fs-sm-8">Sudah Dibaca</span>
                                 {% else %}
-                                    <span class="badge bg-success">Baru</span>
+                                    <span class="badge bg-success fs-7 fs-sm-8">Baru</span>
                                 {% endif %}
                             </td>
                         </tr>

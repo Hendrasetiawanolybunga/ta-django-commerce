@@ -7,6 +7,13 @@
 {% endblock %}
 
 {% block content %}
+<!-- Added smooth scroll behavior -->
+<style>
+  html {
+    scroll-behavior: smooth;
+  }
+</style>
+
 <section class="container my-5">
     <div class="row">
         <div class="col-12">
@@ -29,9 +36,11 @@
         </div>
     </div>
     
+    <!-- Revised Grid System for optimal responsive behavior -->
     <div class="row g-4">
         {% for p in produk %}
-        <div class="col-md-4 col-sm-6">
+        <!-- Updated grid classes for better responsive behavior -->
+        <div class="col-lg-3 col-md-4 col-sm-6 col-12">
             <div class="card card-custom h-100 position-relative">
                 <!-- Discount badge positioned at top right corner of the image -->
                 {% if p.diskon_aktif %}
@@ -41,14 +50,16 @@
                     </span>
                 </div>
                 {% endif %}
-                <img src="{{ p.foto_produk.url }}" class="card-img-top" alt="{{ p.nama_produk }}" style="height: 200px; object-fit: cover;">
-                <div class="card-body">
+                <!-- Made image fully responsive with fixed aspect ratio -->
+                <div class="ratio ratio-1x1">
+                    <img src="{{ p.foto_produk.url }}" class="card-img-top object-fit-cover" alt="{{ p.nama_produk }}">
+                </div>
+                <div class="card-body d-flex flex-column">
                     <h5 class="card-title product-title">{{ p.nama_produk }}</h5>
                     {% if p.kategori %}
                         <span class="badge bg-secondary mb-2">{{ p.kategori.nama_kategori }}</span>
                     {% endif %}
-                    <p class="card-text product-description">{{ p.deskripsi_produk|truncatewords:10 }}</p>
-                  
+                    <p class="card-text product-description flex-grow-1">{{ p.deskripsi_produk|truncatewords:10 }}</p>
                 </div>
                 <div class="card-footer pd-3">
                       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -138,20 +149,88 @@
 
 {% block extra_css %}
 <style>
-    @media (max-width: 767px) {
+    /* Enhanced responsive styling */
+    @media (max-width: 575.98px) {
+        .col-sm-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+        
         .product-title {
             font-size: 1.1rem;
         }
+        
         .product-description {
             font-size: 0.9rem;
         }
+        
         .product-price {
             font-size: 1rem;
         }
+        
         .btn {
             font-size: 0.85rem;
             padding: 0.375rem 0.5rem;
         }
+        
+        .card-img-top {
+            height: auto;
+        }
+    }
+    
+    @media (min-width: 576px) and (max-width: 767.98px) {
+        .col-sm-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+    }
+    
+    @media (min-width: 768px) and (max-width: 991.98px) {
+        .col-md-4 {
+            flex: 0 0 33.333333%;
+            max-width: 33.333333%;
+        }
+    }
+    
+    @media (min-width: 992px) {
+        .col-lg-3 {
+            flex: 0 0 25%;
+            max-width: 25%;
+        }
+    }
+    
+    /* Ensure consistent card height */
+    .card-custom {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .card-body {
+        flex-grow: 1;
+    }
+    
+    /* Improved image styling */
+    .ratio {
+        position: relative;
+        width: 100%;
+    }
+    
+    .ratio:before {
+        display: block;
+        padding-top: 100%; /* 1:1 Aspect Ratio */
+        content: "";
+    }
+    
+    .ratio > * {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+    
+    .object-fit-cover {
+        object-fit: cover;
     }
 </style>
 {% endblock %}

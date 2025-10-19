@@ -54,7 +54,6 @@
         }
         
         .hero-description {
-            font-size: 1.2rem;
             max-width: 800px;
             margin: 0 auto 2rem;
             color: #F0F8F0;
@@ -363,6 +362,38 @@
             .product-card .card-text {
                 font-size: 0.8rem;
             }
+            
+            /* Reduced margins for mobile */
+            .my-5 {
+                margin-top: 1rem !important;
+                margin-bottom: 1rem !important;
+            }
+            
+            .py-5 {
+                padding-top: 1rem !important;
+                padding-bottom: 1rem !important;
+            }
+            
+            .section-title {
+                font-size: 1.25rem;
+                margin-bottom: 1rem;
+            }
+            
+            /* Responsive font sizes for paragraphs */
+            p {
+                font-size: 0.875rem;
+            }
+            
+            .lead {
+                font-size: 1rem;
+            }
+        }
+        
+        /* Base font size adjustment for extra small screens */
+        @media (max-width: 576px) {
+            html {
+                font-size: 14px;
+            }
         }
     </style>
 </head>
@@ -373,8 +404,9 @@
         <div class="container hero-content">
             <div class="row align-items-center">
                 <div class="col-lg-12 hero-text">
-                    <h1 class="display-4 fw-bold mb-4 hero-title">Selamat Datang di UD. Barokah Jaya Beton</h1>
-                    <p class="lead mb-4 hero-description">Temukan produk berkualitas tinggi dengan harga terjangkau. Belanja mudah, aman, dan terpercaya hanya di UD. Barokah Jaya Beton.</p>
+                    <!-- Responsive font sizing for main title -->
+                    <h1 class="display-4 fw-bold mb-4 hero-title fs-2 fs-sm-1">Selamat Datang di UD. Barokah Jaya Beton</h1>
+                    <p class="lead mb-4 hero-description fs-6 fs-sm-7">Temukan produk berkualitas tinggi dengan harga terjangkau. Belanja mudah, aman, dan terpercaya hanya di UD. Barokah Jaya Beton.</p>
                     <div class="d-grid gap-3 d-md-flex justify-content-md-center">
                         <a href="{% url 'login_pelanggan' %}" class="btn btn-hero px-4 me-md-3">
                             <i class="fas fa-sign-in-alt me-2"></i>Login Pelanggan
@@ -391,12 +423,12 @@
     <!-- Feature Call-out Section -->
   <section id="feature-callout" class="py-5">
     <div class="container">
-        <h2 class="text-center mb-5 section-title" style="color: #059212;">Penawaran Eksklusif untuk Pelanggan Terbaik</h2>
+        <h2 class="text-center mb-5 section-title fs-3 fs-sm-2" style="color: #059212;">Penawaran Eksklusif untuk Pelanggan Terbaik</h2>
         <div class="row align-items-center">
             
             <div class="col-lg-12 mb-4 mb-lg-0">
                 <div class="card discount-card shadow-lg h-100 border-0" style="background-color: #059212;">
-                    <div class="card-body text-white text-center p-5">
+                    <div class="card-body text-white text-center p-5 p-sm-3">
                         <div class="mb-4">
                            
                             <i class="fas fa-birthday-cake fa-3x me-3 feature-icon" style="color: #FFC107;"></i>
@@ -404,11 +436,11 @@
                         </div>
             
                         
-                        <p class="card-text lead fw-bold" style="font-size: 1.5rem;">
+                        <p class="card-text lead fw-bold fs-5 fs-sm-6">
                             Sebagai apresiasi tertinggi, dapatkan Potongan Harga Eksklusif sebesar 10% yang berlaku hanya untuk pelanggan setia kami yang telah mencapai total belanja kumulatif di atas Rp5.000.000, tepat di hari perayaan Ulang Tahun Anda.
                         </p>
                         
-                        <p class="mt-3 fst-italic">Syarat ganda ini memastikan penawaran terbaik hanya diterima oleh pelanggan paling setia.</p>
+                        <p class="mt-3 fst-italic fs-6 fs-sm-7">Syarat ganda ini memastikan penawaran terbaik hanya diterima oleh pelanggan paling setia.</p>
                         
                     
                     </div>
@@ -421,7 +453,7 @@
 
     <section id="gallery" class="py-5 bg-white">
         <div class="container">
-            <h2 class="text-center mb-5 section-title">Galeri Produk Kami</h2>
+            <h2 class="text-center mb-5 section-title fs-3 fs-sm-2">Galeri Produk Kami</h2>
             <div class="row g-4">
                 {% for p in produk %}
                 <div class="col-md-4">
@@ -429,9 +461,9 @@
                         <img src="{{ p.foto_produk.url }}" class="card-img-top gallery-img" alt="{{ p.nama_produk }}">
                         <div class="overlay-text">Lihat Produk</div>
                         <div class="card-body text-center">
-                            <h5 class="card-title">{{ p.nama_produk }}</h5>
-                            <p class="card-text text-muted">{{ p.deskripsi_produk|truncatewords:15 }}</p>
-                            <p class="card-text fw-bold text-success">Rp {{ p.harga_produk|intcomma }} / unit</p>
+                            <h5 class="card-title fs-5 fs-sm-6">{{ p.nama_produk }}</h5>
+                            <p class="card-text text-muted fs-6 fs-sm-7">{{ p.deskripsi_produk|truncatewords:15 }}</p>
+                            <p class="card-text fw-bold text-success fs-6 fs-sm-7">Rp {{ p.harga_produk|intcomma }} / unit</p>
                         </div>
                     </div>
                 </div>
@@ -442,39 +474,39 @@
 
     <section id="about" class="about-section">
         <div class="container">
-            <h2 class="text-center mb-5 section-title">Tentang Kami</h2>
+            <h2 class="text-center mb-5 section-title fs-3 fs-sm-2">Tentang Kami</h2>
             <div class="row align-items-center">
                 <div class="col-lg-6 mb-4 mb-lg-0">
                     <img src="{% static 'images/hero-image.jpeg' %}" class="img-fluid rounded shadow about-image" alt="Tentang UD. Barokah Jaya Beton" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{% static 'images/hero-image.jpeg' %}" style="cursor: pointer;">
                     <div class="overlay-text">Lihat Gambar</div>
                 </div>
                 <div class="col-lg-6">
-                    <h3 class="mb-4" style="color: #059212;">UD. Barokah Jaya Beton</h3>
-                    <p class="mb-4">UD. Barokah Jaya Beton adalah perusahaan yang bergerak di bidang produksi beton precast dengan lebih dari 10 tahun pengalaman di industri konstruksi Indonesia.</p>
-                    <p class="mb-4">Kami berkomitmen untuk menyediakan produk beton precast berkualitas tinggi dengan harga yang kompetitif, serta pelayanan terbaik untuk memenuhi kebutuhan konstruksi pelanggan kami.</p>
+                    <h3 class="mb-4 fs-4 fs-sm-3" style="color: #059212;">UD. Barokah Jaya Beton</h3>
+                    <p class="mb-4 fs-6 fs-sm-7">UD. Barokah Jaya Beton adalah perusahaan yang bergerak di bidang produksi beton precast dengan lebih dari 10 tahun pengalaman di industri konstruksi Indonesia.</p>
+                    <p class="mb-4 fs-6 fs-sm-7">Kami berkomitmen untuk menyediakan produk beton precast berkualitas tinggi dengan harga yang kompetitif, serta pelayanan terbaik untuk memenuhi kebutuhan konstruksi pelanggan kami.</p>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <div class="d-flex align-items-center">
                                 <i class="fas fa-check-circle text-success me-2"></i>
-                                <span>Kualitas Terjamin</span>
+                                <span class="fs-6 fs-sm-7">Kualitas Terjamin</span>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <div class="d-flex align-items-center">
                                 <i class="fas fa-check-circle text-success me-2"></i>
-                                <span>Harga Kompetitif</span>
+                                <span class="fs-6 fs-sm-7">Harga Kompetitif</span>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <div class="d-flex align-items-center">
                                 <i class="fas fa-check-circle text-success me-2"></i>
-                                <span>Pengiriman Tepat Waktu</span>
+                                <span class="fs-6 fs-sm-7">Pengiriman Tepat Waktu</span>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <div class="d-flex align-items-center">
                                 <i class="fas fa-check-circle text-success me-2"></i>
-                                <span>Pelayanan Profesional</span>
+                                <span class="fs-6 fs-sm-7">Pelayanan Profesional</span>
                             </div>
                         </div>
                     </div>
@@ -485,38 +517,38 @@
 
     <section id="faq" class="faq-section">
         <div class="container">
-            <h2 class="text-center mb-5 section-title">Frequently Asked Questions</h2>
+            <h2 class="text-center mb-5 section-title fs-3 fs-sm-2">Frequently Asked Questions</h2>
             <div class="row justify-content-center">
                 <div class="col-lg-8">
                     <div class="faq-item">
-                        <div class="faq-question">
+                        <div class="faq-question fs-6 fs-sm-7">
                             <i class="fas fa-question-circle me-2"></i>Apa itu beton precast?
                         </div>
-                        <div class="faq-answer">
+                        <div class="faq-answer fs-6 fs-sm-7">
                             <p>Beton precast adalah beton yang dicetak dan diproduksi di pabrik dengan kualitas terkontrol, kemudian dikirim ke lokasi proyek untuk pemasangan.</p>
                         </div>
                     </div>
                     <div class="faq-item">
-                        <div class="faq-question">
+                        <div class="faq-question fs-6 fs-sm-7">
                             <i class="fas fa-question-circle me-2"></i>Bagaimana cara memesan produk?
                         </div>
-                        <div class="faq-answer">
+                        <div class="faq-answer fs-6 fs-sm-7">
                             <p>Anda dapat memesan produk melalui website kami dengan login terlebih dahulu, memilih produk yang diinginkan, memasukkan ke keranjang, dan melakukan checkout.</p>
                         </div>
                     </div>
                     <div class="faq-item">
-                        <div class="faq-question">
+                        <div class="faq-question fs-6 fs-sm-7">
                             <i class="fas fa-question-circle me-2"></i>Berapa lama waktu pengiriman?
                         </div>
-                        <div class="faq-answer">
+                        <div class="faq-answer fs-6 fs-sm-7">
                             <p>Waktu pengiriman tergantung pada lokasi dan ketersediaan produk. Untuk area Jabodetabek, pengiriman biasanya memakan waktu 1-3 hari kerja.</p>
                         </div>
                     </div>
                     <div class="faq-item">
-                        <div class="faq-question">
+                        <div class="faq-question fs-6 fs-sm-7">
                             <i class="fas fa-question-circle me-2"></i>Apakah tersedia layanan konsultasi teknis?
                         </div>
-                        <div class="faq-answer">
+                        <div class="faq-answer fs-6 fs-sm-7">
                             <p>Ya, kami menyediakan layanan konsultasi teknis gratis untuk membantu Anda dalam memilih produk yang sesuai dengan kebutuhan proyek Anda.</p>
                         </div>
                     </div>
@@ -532,12 +564,12 @@
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="imageModalLabel">Detail Gambar</h5>
+                    <h5 class="modal-title fs-5 fs-sm-6" id="imageModalLabel">Detail Gambar</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-center">
                     <img id="modalImage" src="" class="img-fluid" alt="Detail Gambar">
-                    <p class="card-text text-muted">{{ p.deskripsi_produk }}</p>
+                    <p class="card-text text-muted fs-6 fs-sm-7">{{ p.deskripsi_produk }}</p>
                 </div>
             </div>
         </div>

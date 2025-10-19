@@ -203,6 +203,33 @@ def keranjang(request):
     
     # Get notification count
     notifikasi_count = get_notification_count(pelanggan_id)
+    
+    # Get the customer object to check birthday and total spending
+    pelanggan = get_object_or_404(Pelanggan, pk=pelanggan_id)
+    
+    # Check if customer qualifies for birthday discount
+    # Kondisi A: Tanggal Lahir == Tanggal Hari Ini
+    from datetime import date
+    today = date.today()
+    is_birthday = (
+        pelanggan.tanggal_lahir and 
+        pelanggan.tanggal_lahir.month == today.month and 
+        pelanggan.tanggal_lahir.day == today.day
+    )
+    
+    # Kondisi B: Total semua Transaksi dengan status DIBAYAR/DIKIRIM/SELESAI pelanggan tersebut ≥ Rp 5.000.000
+    from django.db.models import Sum
+    total_spending = Transaksi.objects.filter(
+        pelanggan=pelanggan,
+        status_transaksi__in=['DIBAYAR', 'DIKIRIM', 'SELESAI']
+    ).aggregate(
+        total_belanja=Sum('total')
+    )['total_belanja'] or 0
+    
+    is_loyal = total_spending >= 5000000
+    
+    # Customer qualifies for birthday discount if both conditions are met
+    qualifies_for_birthday_discount = is_birthday and is_loyal
 
     for produk_id, jumlah in keranjang_belanja.items():
         produk = get_object_or_404(Produk, pk=produk_id)
@@ -228,6 +255,15 @@ def keranjang(request):
                 produk__isnull=True,  # General discount
                 status='aktif'
             ).first()
+        
+        # Apply birthday discount if customer qualifies
+        if qualifies_for_birthday_discount and not diskon_produk:
+            # Create a temporary discount object for birthday discount
+            from .models import DiskonPelanggan
+            diskon_produk = type('DiskonPelanggan', (), {
+                'persen_diskon': 10,
+                'pesan': 'Diskon Ulang Tahun untuk Pelanggan Loyal'
+            })()
         
         if diskon_produk:
             diskon = diskon_produk
@@ -258,7 +294,11 @@ def keranjang(request):
         'total_sebelum_diskon': total_sebelum_diskon,
         'total_diskon': total_diskon,
         'total_setelah_diskon': total_sebelum_diskon - total_diskon,
-        'notifikasi_count': notifikasi_count
+        'notifikasi_count': notifikasi_count,
+        'qualifies_for_birthday_discount': qualifies_for_birthday_discount,
+        'is_birthday': is_birthday,
+        'is_loyal': is_loyal,
+        'total_spending': total_spending
     }
     return render(request, 'keranjang.html', context)
 
@@ -780,6 +820,92 @@ def check_expired_payments():
             f"Pesanan #{transaction.id} telah dibatalkan karena melewati batas waktu pembayaran."
         )
 
+def send_birthday_email(customer, total_spending):
+    """
+    Simulate sending birthday email notification
+    In a real implementation, this would use Django's send_mail function
+    """
+    # This is a simulation - in real implementation you would use:
+    # from django.core.mail import send_mail
+    # send_mail(
+    #     subject='Selamat Ulang Tahun! Diskon Spesial untuk Anda',
+    #     message=f'Selamat ulang tahun {customer.nama_pelanggan}! Nikmati diskon 10% untuk pembelanjaan hari ini.',
+    #     from_email='noreply@barokahjayabeton.com',
+    #     recipient_list=[customer.email],
+    #     fail_silently=False,
+    # )
+    
+    print(f'EMAIL SIMULATION: Birthday email would be sent to {customer.email or customer.nama_pelanggan}')
+    return True
+
+
+def dashboard_analitik(request):
+    """
+    Custom analytics dashboard view that provides data analytics:
+    - Monthly Revenue (last 6 months)
+    - Top 5 Best Selling Products
+    - Top 3 Loyal Customers
+    """
+    from django.db.models import Sum
+    from django.utils import timezone
+    from datetime import timedelta
+    import json
+    
+    # Calculate monthly revenue for the last 6 months
+    today = timezone.now()
+    monthly_revenue = []
+    
+    # Define status that count as paid transactions
+    PAID_STATUSES = ['DIBAYAR', 'DIKIRIM', 'SELESAI']
+    
+    for i in range(5, -1, -1):  # Last 6 months (including current)
+        start_date = (today - timedelta(days=30*i)).replace(day=1)
+        if i == 0:  # Current month
+            end_date = today
+        else:
+            # Last day of the month
+            next_month = (today - timedelta(days=30*(i-1))).replace(day=1)
+            end_date = next_month - timedelta(days=1)
+            
+        monthly_total = Transaksi.objects.filter(
+            status_transaksi__in=PAID_STATUSES,
+            tanggal__gte=start_date,
+            tanggal__lte=end_date
+        ).aggregate(total=Sum('total'))['total'] or 0
+        
+        monthly_revenue.append({
+            'month': start_date.strftime('%B %Y'),
+            'total': float(monthly_total)
+        })
+    
+    # Get top 5 best selling products (by quantity)
+    from .models import DetailTransaksi, Produk
+    top_products = DetailTransaksi.objects.filter(
+        transaksi__status_transaksi__in=PAID_STATUSES
+    ).values(
+        'produk__nama_produk'
+    ).annotate(
+        total_quantity=Sum('jumlah_produk'),
+        total_revenue=Sum('sub_total')
+    ).order_by('-total_quantity')[:5]
+    
+    # Get top 3 loyal customers (by total purchase amount)
+    top_customers = Transaksi.objects.filter(
+        status_transaksi__in=PAID_STATUSES
+    ).values(
+        'pelanggan__nama_pelanggan'
+    ).annotate(
+        total_spent=Sum('total')
+    ).order_by('-total_spent')[:3]
+    
+    context = {
+        'monthly_revenue': json.dumps(monthly_revenue),
+        'top_products': top_products,
+        'top_customers': top_customers
+    }
+    
+    return render(request, 'admin_dashboard/dashboard_analitik.html', context)
+
 # Import statements for the new view
 import django_tables2 as tables
 from django_tables2 import RequestConfig
@@ -1043,3 +1169,4 @@ def laporan_produk_terlaris(request):
     }
     
     return render(request, 'admin_dashboard/laporan_produk_terlaris.html', context)
+
