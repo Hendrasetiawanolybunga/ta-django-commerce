@@ -12,6 +12,38 @@
   html {
     scroll-behavior: smooth;
   }
+  
+  /* Enhanced discount badge styling with higher z-index and better positioning */
+  .discount-badge-wrapper {
+    position: absolute;
+    z-index: 1000 !important;
+    margin: 0 !important;
+  }
+  
+  .discount-badge {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
+    font-weight: bold !important;
+    padding: 6px 12px !important;
+    border-radius: 4px !important;
+    z-index: 1000 !important;
+    margin: 0 !important;
+  }
+  
+  /* Favorite product badge styling */
+  .favorite-badge-wrapper {
+    position: absolute;
+    z-index: 1000 !important;
+    margin: 0 !important;
+  }
+  
+  .favorite-badge {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
+    font-weight: bold !important;
+    padding: 6px 12px !important;
+    border-radius: 4px !important;
+    z-index: 1000 !important;
+    margin: 0 !important;
+  }
 </style>
 
 <section class="container my-5">
@@ -42,11 +74,20 @@
         <!-- Updated grid classes for better responsive behavior -->
         <div class="col-lg-3 col-md-4 col-sm-6 col-12">
             <div class="card card-custom h-100 position-relative">
-                <!-- Discount badge positioned at top right corner of the image -->
+                <!-- Discount badge positioned at top right corner of the image with aggressive styling -->
                 {% if p.diskon_aktif %}
-                <div class="position-absolute top-0 end-0 m-2">
-                    <span class="badge bg-danger fs-6">
+                <div class="position-absolute top-0 end-0 m-1 discount-badge-wrapper">
+                    <span class="badge bg-danger fs-6 discount-badge">
                         <i class="fas fa-tags me-1"></i>Diskon {{ p.diskon_aktif.persen_diskon }}%
+                    </span>
+                </div>
+                {% endif %}
+                
+                <!-- Favorite product badge for birthday discount with aggressive styling -->
+                {% if not p.diskon_aktif and qualifies_for_birthday_discount %}
+                <div class="position-absolute top-0 start-0 m-1 favorite-badge-wrapper">
+                    <span class="badge bg-warning text-dark fs-6 favorite-badge">
+                        <i class="fas fa-heart me-1"></i>Favorit
                     </span>
                 </div>
                 {% endif %}
@@ -59,7 +100,6 @@
                     {% if p.kategori %}
                         <span class="badge bg-secondary mb-2">{{ p.kategori.nama_kategori }}</span>
                     {% endif %}
-                    <p class="card-text product-description flex-grow-1">{{ p.deskripsi_produk|truncatewords:10 }}</p>
                 </div>
                 <div class="card-footer pd-3">
                       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -102,7 +142,7 @@
                     <div class="modal-body">
                         <div class="row">
                             <div class="col-md-6">
-                                <img src="{{ p.foto_produk.url }}" class="img-fluid rounded" alt="{{ p.nama_produk }}">
+                                <img src="{{ p.foto_produk.url }}" class="img-fluid rounded product-image-detail" alt="{{ p.nama_produk }}">
                             </div>
                             <div class="col-md-6">
                                 <p class="fw-bold" style="color: #059212; font-size: 1.5rem;">Rp {{ p.harga_produk|intcomma }}</p>

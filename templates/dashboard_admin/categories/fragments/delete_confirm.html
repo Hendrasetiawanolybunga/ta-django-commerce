@@ -1,0 +1,13 @@
+<form id="categoryForm" method="post" action="{% url 'dashboard_admin:category_delete_ajax' category.pk %}">
+    {% csrf_token %}
+    <div class="alert alert-warning">
+        <h5>Are you sure you want to delete this category?</h5>
+        <p>
+            <strong>Category Name:</strong> {{ category.nama_kategori }}
+        </p>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-danger">Delete Category</button>
+    </div>
+</form>

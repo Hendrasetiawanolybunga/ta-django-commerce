@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Stok Produk Bertambah!</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #059212; text-align: center;">📦 Stok Produk Bertambah! 📦</h1>
+        
+        <p>Hai Pelanggan Setia Barokah Jaya Beton,</p>
+        
+        <p>Kami dengan senang hati menginformasikan bahwa stok produk kami telah bertambah!</p>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            <h2 style="color: #059212; margin-top: 0;">{{ product.nama_produk }}</h2>
+            {% if product.foto_produk %}
+            <img src="{{ request.scheme }}://{{ request.get_host }}{{ product.foto_produk.url }}" alt="{{ product.nama_produk }}" style="max-width: 100%; height: auto; border-radius: 8px;">
+            {% endif %}
+            <p style="font-size: 16px; margin: 15px 0;">{{ product.deskripsi_produk }}</p>
+            <p style="font-size: 20px; font-weight: bold; color: #059212;">Rp {{ product.harga_produk|intcomma }}</p>
+            <p style="font-size: 16px; color: #666;">Stok Tersedia: {{ product.stok_produk|intcomma }}</p>
+        </div>
+        
+        <p>Produk yang sebelumnya mungkin sudah habis kini tersedia kembali. Jangan lewatkan kesempatan ini untuk mendapatkan produk yang Anda inginkan!</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{ link_cta|default:'http://127.0.0.1:8000/produk/' }}" style="background-color: #059212; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Lihat Produk Sekarang</a>
+        </div>
+        
+        <p>Salam hangat,<br>
+        <strong>Tim UD. Barokah Jaya Beton</strong></p>
+        
+        <hr style="margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #666; text-align: center;">
+            Email ini dikirim secara otomatis. Mohon tidak membalas email ini.<br>
+            Jika Anda memiliki pertanyaan, silakan hubungi kami di +62 812-3897-6923
+        </p>
+    </div>
+</body>
+</html>

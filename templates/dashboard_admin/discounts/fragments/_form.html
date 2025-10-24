@@ -1,0 +1,64 @@
+<form id="discountForm" method="post" 
+      {% if discount %}
+        action="{% url 'dashboard_admin:discount_update_ajax' discount.pk %}"
+      {% else %}
+        action="{% url 'dashboard_admin:discount_create_ajax' %}"
+      {% endif %}>
+    {% csrf_token %}
+    <div class="modal-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="pelanggan" class="form-label">Customer *</label>
+                    <select class="form-control" id="pelanggan" name="pelanggan" required>
+                        <option value="">Select Customer</option>
+                        {% for customer in customers %}
+                            <option value="{{ customer.id }}" 
+                                    {% if discount and discount.pelanggan and discount.pelanggan.id == customer.id %}selected{% endif %}>
+                                {{ customer.nama_pelanggan }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="produk" class="form-label">Product (Optional)</label>
+                    <select class="form-control" id="produk" name="produk">
+                        <option value="">General Discount</option>
+                        {% for product in products %}
+                            <option value="{{ product.id }}" 
+                                    {% if discount and discount.produk and discount.produk.id == product.id %}selected{% endif %}>
+                                {{ product.nama_produk }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="persen_diskon" class="form-label">Discount Percentage *</label>
+                    <input type="number" class="form-control" id="persen_diskon" name="persen_diskon" min="1" max="100" 
+                           {% if discount %}value="{{ discount.persen_diskon }}"{% endif %} required>
+                </div>
+                <div class="mb-3">
+                    <label for="status" class="form-label">Status *</label>
+                    <select class="form-control" id="status" name="status" required>
+                        <option value="aktif" {% if discount and discount.status == "aktif" %}selected{% endif %}>Active</option>
+                        <option value="tidak_aktif" {% if discount and discount.status == "tidak_aktif" %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="pesan" class="form-label">Message</label>
+            <textarea class="form-control" id="pesan" name="pesan" rows="3">
+                {% if discount %}{{ discount.pesan }}{% endif %}
+            </textarea>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+            {% if discount %}Update{% else %}Create{% endif %} Discount
+        </button>
+    </div>
+</form>

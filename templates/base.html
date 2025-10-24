@@ -143,6 +143,22 @@
             align-items: center;
             justify-content: center;
         }
+        /* Cart badge */
+        .cart-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: #dc3545; /* Red color using Bootstrap's bg-danger */
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
         /* Center navigation */
         .navbar-nav-centered {
             display: flex;
@@ -216,9 +232,11 @@
 
     <nav class="navbar navbar-expand-lg navbar-custom fixed-top">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{% if request.session.pelanggan_id %}{% url 'dashboard_pelanggan' %}{% else %}{% url 'beranda_umum' %}{% endif %}">
-              UD. Barokah Jaya Beton
-            </a>
+            {% if request.session.pelanggan_id %}
+            <a class="navbar-brand" href="{% url 'dashboard_pelanggan' %}">UD. Barokah Jaya Beton</a>
+            {% else %}
+            <a class="navbar-brand" href="{% url 'beranda_umum' %}">UD. Barokah Jaya Beton</a>
+            {% endif %}
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -233,7 +251,15 @@
                         <a class="nav-link" href="{% url 'daftar_pesanan' %}"><i class="fas fa-shopping-cart me-1"></i>Pesanan</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'keranjang' %}"><i class="fas fa-cart-plus me-1"></i>Keranjang</a>
+                        <a class="nav-link position-relative" href="{% url 'keranjang' %}">
+                            <i class="fas fa-cart-plus me-1"></i>Keranjang
+                            <!-- Cart badge -->
+                            {% with cart_count=cart_item_count|default:0 %}
+                                {% if cart_count > 0 %}
+                                    <span id="cart-badge" class="badge bg-danger rounded-pill cart-badge">{{ cart_count }}</span>
+                                {% endif %}
+                            {% endwith %}
+                        </a>
                     </li>
                 </ul>
                 <!-- Right-aligned items -->
@@ -284,6 +310,52 @@
 
     <!-- Bootstrap 5.3 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Cart AJAX Handler -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle AJAX form submissions for adding to cart
+            document.addEventListener('submit', function(e) {
+                const form = e.target;
+                if (form.action && form.action.includes('/tambah-ke-keranjang/')) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(form);
+                    
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update cart badge
+                            const cartBadge = document.getElementById('cart-badge');
+                            if (cartBadge) {
+                                cartBadge.textContent = data.cart_total_items;
+                                // Make sure the badge is visible
+                                cartBadge.style.display = 'flex';
+                            }
+                            
+                            // Removed alert for better UX - only update cart badge silently
+                            // alert(data.message);
+                        } else {
+                            // Show error message
+                            alert(data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Terjadi kesalahan saat menambahkan ke keranjang.');
+                    });
+                }
+            });
+        });
+    </script>
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>

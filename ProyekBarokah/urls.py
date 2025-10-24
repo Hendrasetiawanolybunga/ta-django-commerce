@@ -1,13 +1,12 @@
-from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    # Rute ke dashboard admin Django bawaan
-    path('admin/', admin.site.urls),
+    # Custom admin dashboard
+    path('dashboard_admin/', include('dashboard_admin.urls', namespace='dashboard_admin')),
     
-    # Tambahkan rute untuk aplikasi Anda di sini
+    # Main application routes
     path('', include('admin_dashboard.urls')),
 ]
 

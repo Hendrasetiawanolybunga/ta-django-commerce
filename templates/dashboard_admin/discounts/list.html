@@ -1,0 +1,99 @@
+{% extends 'dashboard_admin/base.html' %}
+{% load static %}
+
+{% block title %}Diskon{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Manajemen Diskon</h2>
+        <a href="{% url 'dashboard_admin:discount_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Tambah Diskon Baru
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Pelanggan</th>
+                            <th>Produk</th>
+                            <th>Diskon %</th>
+                            <th>Status</th>
+                            <th>Pesan</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for discount in page_obj %}
+                        <tr>
+                            <td>{{ discount.id }}</td>
+                            <td>{{ discount.pelanggan.nama_pelanggan }}</td>
+                            <td>{{ discount.produk.nama_produk|default:"General Discount" }}</td>
+                            <td>{{ discount.persen_diskon }}%</td>
+                            <td>
+                                {% if discount.status == "aktif" %}
+                                    <span class="badge bg-success">Aktif</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Tidak Aktif</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ discount.pesan|truncatewords:5 }}</td>
+                            <td>
+                                <a href="{% url 'dashboard_admin:discount_update' discount.pk %}" class="btn btn-sm btn-warning" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'dashboard_admin:discount_delete' discount.pk %}" class="btn btn-sm btn-danger" title="Hapus">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No discounts found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Discount pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}

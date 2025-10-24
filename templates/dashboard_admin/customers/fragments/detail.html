@@ -1,0 +1,66 @@
+<div class="modal-header">
+    <h5 class="modal-title">Customer Details</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label"><strong>ID</strong></label>
+                <p class="form-control-plaintext">{{ customer.id }}</p>
+            </div>
+            <div class="mb-3">
+                <label class="form-label"><strong>Username</strong></label>
+                <p class="form-control-plaintext">{{ customer.username }}</p>
+            </div>
+            <div class="mb-3">
+                <label class="form-label"><strong>Name</strong></label>
+                <p class="form-control-plaintext">{{ customer.nama_pelanggan }}</p>
+            </div>
+            <div class="mb-3">
+                <label class="form-label"><strong>Email</strong></label>
+                <p class="form-control-plaintext">{{ customer.email|default:"-" }}</p>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label"><strong>Phone</strong></label>
+                <p class="form-control-plaintext">{{ customer.no_hp }}</p>
+            </div>
+            <div class="mb-3">
+                <label class="form-label"><strong>Address</strong></label>
+                <p class="form-control-plaintext">{{ customer.alamat|default:"-" }}</p>
+            </div>
+            <div class="mb-3">
+                <label class="form-label"><strong>Date of Birth</strong></label>
+                <p class="form-control-plaintext">{{ customer.tanggal_lahir|date:"d M Y"|default:"-" }}</p>
+            </div>
+            <div class="mb-3">
+                <label class="form-label"><strong>Total Spending</strong></label>
+                <p class="form-control-plaintext">Rp {{ total_spending|floatformat:0|intcomma }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="alert alert-{% if is_loyal %}success{% else %}info{% endif %}" role="alert">
+                <strong>Status:</strong> 
+                {% if is_loyal %}
+                    <i class="fas fa-crown text-warning"></i> Loyal Customer
+                {% else %}
+                    Regular Customer
+                {% endif %}
+                {% if is_birthday %}
+                    <span class="badge bg-primary ms-2">Birthday Today!</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    <button type="button" class="btn btn-warning" data-bs-dismiss="modal" 
+            onclick="openUpdateModal({{ customer.pk }})">
+        <i class="fas fa-edit"></i> Edit
+    </button>
+</div>

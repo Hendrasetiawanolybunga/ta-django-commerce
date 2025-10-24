@@ -1,0 +1,29 @@
+{% extends 'dashboard_admin/base.html' %}
+
+{% block title %}Edit Category{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Edit Category</h2>
+        <a href="{% url 'dashboard_admin:category_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Categories
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="nama_kategori" class="form-label">Category Name</label>
+                    <input type="text" class="form-control" id="nama_kategori" name="nama_kategori" value="{{ category.nama_kategori }}" required>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">Update Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'dashboard_admin/base.html' %}
+
+{% block title %}Product Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Product Details</h2>
+        <div>
+            <a href="{% url 'dashboard_admin:product_update' product.pk %}" class="btn btn-warning me-2">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            <a href="{% url 'dashboard_admin:product_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Products
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.nama_produk }}</h5>
+                    <p class="card-text">{{ product.deskripsi_produk }}</p>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <strong>Category:</strong> 
+                            {{ product.kategori.nama_kategori|default:"-" }}
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Price:</strong> 
+                            Rp {{ product.harga_produk|floatformat:0 }}
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Stock:</strong> 
+                            {{ product.stok_produk }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body text-center">
+                    {% if product.foto_produk %}
+                        <img src="{{ product.foto_produk.url }}" alt="{{ product.nama_produk }}" class="img-fluid">
+                    {% else %
+                        <p class="text-muted">No image available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

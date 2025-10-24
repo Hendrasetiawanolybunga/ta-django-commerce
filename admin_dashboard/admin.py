@@ -35,11 +35,15 @@ except ImportError:
 
 
 # Helper function to create notifications
-def create_notification(pelanggan, tipe_pesan, isi_pesan):
+def create_notification(pelanggan, tipe_pesan, isi_pesan, url_target='#'):
     """
-    Create a notification for a specific customer
+    Create a notification for a specific customer with optional CTA URL
     """
     try:
+        # Add CTA URL to the message if provided
+        if url_target and url_target != '#':
+            isi_pesan = f"{isi_pesan} <a href='{url_target}' class='alert-link'>Lihat detail</a>"
+        
         Notifikasi.objects.create(
             pelanggan=pelanggan,
             tipe_pesan=tipe_pesan,
@@ -90,12 +94,126 @@ class PelangganAdmin(BaseModelAdmin):
     list_display = ['username', 'nama_pelanggan', 'no_hp', 'is_ultah', 'set_diskon_button', 'get_actions_links']
     search_fields = ['username', 'nama_pelanggan', 'no_hp']
     list_filter = (IsLoyalFilter,)
-    actions = ['laporan_pelanggan_loyal']
+    actions = ['laporan_pelanggan_loyal', 'set_birthday_discount_for_loyal_customers']
     list_per_page = 6
     
+    def set_birthday_discount_for_loyal_customers(self, request, queryset):
+        """
+        Admin action to manually trigger birthday discount for loyal customers
+        """
+        from django.db.models import Sum
+        from datetime import date
+        from .views import create_notification, send_notification_email  # Import notification helpers
+        
+        today = date.today()
+        success_count = 0
+        
+        # Filter customers who qualify for double discount (birthday AND loyal)
+        for pelanggan in queryset:
+            # Check if customer has birthday today
+            is_birthday = (
+                pelanggan.tanggal_lahir and 
+                pelanggan.tanggal_lahir.month == today.month and 
+                pelanggan.tanggal_lahir.day == today.day
+            )
+            
+            if not is_birthday:
+                self.message_user(
+                    request, 
+                    f"{pelanggan.nama_pelanggan} tidak memiliki ulang tahun hari ini.", 
+                    messages.WARNING
+                )
+                continue
+            
+            # Calculate total spending for paid transactions
+            total_spending = Transaksi.objects.filter(
+                pelanggan=pelanggan,
+                status_transaksi__in=['DIBAYAR', 'DIKIRIM', 'SELESAI']
+            ).aggregate(
+                total_belanja=Sum('total')
+            )['total_belanja'] or 0
+            
+            # Check if customer is loyal
+            is_loyal = total_spending >= 5000000
+            
+            if not is_loyal:
+                self.message_user(
+                    request, 
+                    f"{pelanggan.nama_pelanggan} tidak memenuhi syarat loyal (total belanja: Rp {total_spending:,.0f}).", 
+                    messages.WARNING
+                )
+                continue
+            
+            # Get top 3 purchased products for this customer
+            try:
+                top_products = pelanggan.get_top_purchased_products(limit=3)
+            except Exception as e:
+                self.message_user(
+                    request, 
+                    f"Gagal mendapatkan produk favorit untuk {pelanggan.nama_pelanggan}: {e}", 
+                    messages.ERROR
+                )
+                continue
+            
+            # Create/update discount for each top product
+            for product in top_products:
+                diskon, created = DiskonPelanggan.objects.get_or_create(
+                    pelanggan=pelanggan,
+                    produk=product,
+                    defaults={
+                        'persen_diskon': 10,
+                        'status': 'aktif',
+                        'pesan': f'Diskon ulang tahun 10% untuk produk favorit {product.nama_produk}'
+                    }
+                )
+                
+                if not created:
+                    # Update existing discount
+                    diskon.persen_diskon = 10
+                    diskon.status = 'aktif'
+                    diskon.pesan = f'Diskon ulang tahun 10% diperbarui untuk produk favorit {product.nama_produk}'
+                    diskon.save()
+            
+            success_count += 1
+            
+            # Setelah DiskonPelanggan dibuat untuk pelanggan
+            pesan = "Selamat Ulang Tahun! Diskon 10% otomatis aktif pada 3 produk terfavorit Anda."
+            # Panggil helper notifikasi untuk setiap pelanggan yang diproses
+            create_notification(pelanggan, 'Diskon Ulang Tahun Permanen', pesan, '/produk/')
+            
+            # Only send email if customer has an email address
+            if pelanggan.email:
+                try:
+                    send_notification_email(
+                        subject='Diskon Ulang Tahun Permanen',
+                        template_name='emails/birthday_discount_email.html',
+                        context={'pelanggan': pelanggan, 'pesan': pesan},
+                        recipient_list=[pelanggan.email],
+                        url_target='/produk/'
+                    )
+                except Exception as e:
+                    # Log error but don't fail the operation
+                    pass
+            
+            self.message_user(
+                request, 
+                f"Diskon ulang tahun 10% berhasil diterapkan untuk 3 produk favorit {pelanggan.nama_pelanggan}.", 
+                messages.SUCCESS
+            )
+        
+        if success_count > 0:
+            self.message_user(
+                request, 
+                f"Berhasil menerapkan diskon untuk {success_count} pelanggan.", 
+                messages.SUCCESS
+            )
+    
+    set_birthday_discount_for_loyal_customers.short_description = "Set Birthday Discount for Loyal Customers"
+    
     def total_belanja_admin(self, obj):
-        # Calculate total spending for "DIBAYAR" transactions
-        total_spending = obj.transaksi_set.filter(status_transaksi='DIBAYAR').aggregate(
+        # Calculate total spending for paid transactions
+        status_loyalitas = ['DIBAYAR', 'DIKIRIM', 'SELESAI']
+        total_spending = obj.transaksi_set.filter(status_transaksi__in=status_loyalitas).aggregate(
             total_belanja=Sum('total')
         )['total_belanja'] or 0
         
@@ -109,12 +227,13 @@ class PelangganAdmin(BaseModelAdmin):
 
     def set_diskon_button(self, obj):
         today = date.today()
-        # Calculate total spending for "DIBAYAR" transactions
-        total_spending = obj.transaksi_set.filter(status_transaksi='DIBAYAR').aggregate(
+        # Calculate total spending for paid transactions
+        status_loyalitas = ['DIBAYAR', 'DIKIRIM', 'SELESAI']
+        total_spending = obj.transaksi_set.filter(status_transaksi__in=status_loyalitas).aggregate(
             total_belanja=Sum('total')
         )['total_belanja'] or 0
         
-        is_loyal = total_spending > 5000000
+        is_loyal = total_spending >= 5000000
         is_ultah = obj.tanggal_lahir and obj.tanggal_lahir.month == today.month and obj.tanggal_lahir.day == today.day
         
         # Debug information
@@ -138,12 +257,13 @@ class PelangganAdmin(BaseModelAdmin):
             return redirect("admin:admin_dashboard_pelanggan_changelist")
 
         today = date.today()
-        # Calculate total spending for "DIBAYAR" transactions
-        total_spending = pelanggan.transaksi_set.filter(status_transaksi='DIBAYAR').aggregate(
+        # Calculate total spending for paid transactions
+        status_loyalitas = ['DIBAYAR', 'DIKIRIM', 'SELESAI']
+        total_spending = pelanggan.transaksi_set.filter(status_transaksi__in=status_loyalitas).aggregate(
             total_belanja=Sum('total')
         )['total_belanja'] or 0
         
-        is_loyal = total_spending > 5000000
+        is_loyal = total_spending >= 5000000
         is_ultah = pelanggan.tanggal_lahir and pelanggan.tanggal_lahir.month == today.month and pelanggan.tanggal_lahir.day == today.day
         
         # Debug information
@@ -233,20 +353,92 @@ class ProdukAdmin(BaseModelAdmin):
         
         # Send notifications
         if is_new:
-            # Notify all customers about new product with a link to the product
-            from .views import create_notification_for_all_customers
-            # Create a link to the product list page
+            # P3: Notify all customers about new product with email
+            from .views import create_notification_for_all_customers, send_notification_email
+            
+            # Create in-app notification for all customers with specific product detail link
             create_notification_for_all_customers(
                 "Produk Baru", 
-                f"Produk baru telah tersedia: {obj.nama_produk}. <a href='/produk/' class='alert-link'>Lihat detail produk</a>"
+                f"Produk baru telah tersedia: {obj.nama_produk}.",
+                url_target=f'/produk_detail/{obj.id}/'
             )
+            
+            # Send email notification to all customers with valid emails
+            try:
+                # Get all customers with valid emails
+                from .models import Pelanggan
+                customers_with_email = Pelanggan.objects.exclude(email__isnull=True).exclude(email='')
+                recipient_list = [customer.email for customer in customers_with_email]
+                
+                if recipient_list:
+                    send_notification_email(
+                        subject='Produk Baru Tersedia!',
+                        template_name='emails/new_product_email.html',
+                        context={'product': obj},
+                        recipient_list=recipient_list,
+                        url_target=f'/produk_detail/{obj.id}/'
+                    )
+            except Exception as e:
+                # Log error but don't fail the save operation
+                pass
         elif old_obj and old_obj.stok_produk == 0 and obj.stok_produk > 0:
             # Notify all customers about restocked product
-            from .views import create_notification_for_all_customers
+            from .views import create_notification_for_all_customers, send_notification_email
+            
+            # Create in-app notification for all customers with specific product detail link
             create_notification_for_all_customers(
                 "Stok Diperbarui", 
-                f"Stok produk {obj.nama_produk} telah diperbarui. <a href='/produk/' class='alert-link'>Pesan sekarang!</a>"
+                f"Stok produk {obj.nama_produk} telah diperbarui.",
+                url_target=f'/produk_detail/{obj.id}/'
             )
+            
+            # Send email notification to all customers with valid emails
+            try:
+                # Get all customers with valid emails
+                from .models import Pelanggan
+                customers_with_email = Pelanggan.objects.exclude(email__isnull=True).exclude(email='')
+                recipient_list = [customer.email for customer in customers_with_email]
+                
+                if recipient_list:
+                    send_notification_email(
+                        subject='Stok Produk Bertambah!',
+                        template_name='emails/stock_update_email.html',
+                        context={'product': obj},
+                        recipient_list=recipient_list,
+                        url_target=f'/produk_detail/{obj.id}/'
+                    )
+            except Exception as e:
+                # Log error but don't fail the save operation
+                pass
+        elif old_obj and old_obj.stok_produk < obj.stok_produk:
+            # P3: Notify all customers about stock increase
+            from .views import create_notification_for_all_customers, send_notification_email
+            
+            # Create in-app notification for all customers with specific product detail link
+            create_notification_for_all_customers(
+                "Stok Produk Bertambah", 
+                f"Stok produk {obj.nama_produk} telah bertambah.",
+                url_target=f'/produk_detail/{obj.id}/'
+            )
+            
+            # Send email notification to all customers with valid emails
+            try:
+                # Get all customers with valid emails
+                from .models import Pelanggan
+                customers_with_email = Pelanggan.objects.exclude(email__isnull=True).exclude(email='')
+                recipient_list = [customer.email for customer in customers_with_email]
+                
+                if recipient_list:
+                    send_notification_email(
+                        subject='Stok Produk Bertambah!',
+                        template_name='emails/stock_update_email.html',
+                        context={'product': obj},
+                        recipient_list=recipient_list,
+                        url_target=f'/produk_detail/{obj.id}/'
+                    )
+            except Exception as e:
+                # Log error but don't fail the save operation
+                pass
 
     # Custom action for best-selling products report
     def laporan_produk_terlaris(self, request, queryset):

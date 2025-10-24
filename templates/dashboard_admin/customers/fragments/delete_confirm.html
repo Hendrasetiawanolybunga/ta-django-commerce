@@ -1,0 +1,44 @@
+<div class="modal-header">
+    <h5 class="modal-title">Konfirmasi Hapus Pelanggan</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <p>Apakah Anda yakin ingin menghapus pelanggan berikut?</p>
+    <div class="row">
+        <div class="col-md-6">
+            <table class="table table-borderless">
+                <tr>
+                    <th>Username:</th>
+                    <td>{{ customer.username }}</td>
+                </tr>
+                <tr>
+                    <th>Nama Lengkap:</th>
+                    <td>{{ customer.nama_pelanggan }}</td>
+                </tr>
+                <tr>
+                    <th>Email:</th>
+                    <td>{{ customer.email|default:"-" }}</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-md-6">
+            <table class="table table-borderless">
+                <tr>
+                    <th>Telepon:</th>
+                    <td>{{ customer.no_hp }}</td>
+                </tr>
+                <tr>
+                    <th>Tanggal Lahir:</th>
+                    <td>{{ customer.tanggal_lahir|date:"d M Y"|default:"-" }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <p class="text-danger fw-bold">Tindakan ini tidak dapat dibatalkan.</p>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+    <button type="button" class="btn btn-danger" onclick="handleDelete('{% url 'dashboard_admin:customer_delete_ajax' customer.pk %}', function() { $('#customerModal').modal('hide'); location.reload(); })">
+        Hapus Pelanggan
+    </button>
+</div>

@@ -115,13 +115,18 @@
                             <span><i class="fas fa-birthday-cake text-danger"></i> Diskon Ulang Tahun (10%):</span>
                             <span class="text-success">Berlaku!</span>
                         </li>
+                        {% elif qualifies_for_p2b %}
+                        <li class="d-flex justify-content-between small mt-2">
+                            <span><i class="fas fa-birthday-cake text-danger"></i> Diskon Ulang Tahun Instan (10%):</span>
+                            <span class="text-success">Berlaku!</span>
+                        </li>
                         {% elif is_birthday %}
                         <li class="d-flex justify-content-between small mt-2">
                             <span><i class="fas fa-birthday-cake text-danger"></i> Diskon Ulang Tahun:</span>
                             <span class="text-warning">Belum memenuhi syarat</span>
                         </li>
                         <li class="small text-muted mt-1">
-                            <small>Total belanja Anda: Rp {{ total_spending|intcomma }} (min. Rp 5.000.000)</small>
+                            <small>Total belanja Anda: Rp {{ total_cart_value|intcomma }} (min. Rp 5.000.000)</small>
                         </li>
                         {% endif %}
                     </ul>

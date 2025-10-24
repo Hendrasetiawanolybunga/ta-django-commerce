@@ -1,0 +1,67 @@
+{% extends 'dashboard_admin/base.html' %}
+
+{% block title %}Edit Product{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Edit Product</h2>
+        <a href="{% url 'dashboard_admin:product_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Products
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="nama_produk" class="form-label">Product Name</label>
+                            <input type="text" class="form-control" id="nama_produk" name="nama_produk" value="{{ product.nama_produk }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="deskripsi_produk" class="form-label">Description</label>
+                            <textarea class="form-control" id="deskripsi_produk" name="deskripsi_produk" rows="4" required>{{ product.deskripsi_produk }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="kategori" class="form-label">Category</label>
+                            <select class="form-control" id="kategori" name="kategori">
+                                <option value="">Select Category</option>
+                                {% for category in categories %}
+                                    <option value="{{ category.id }}" {% if product.kategori and product.kategori.id == category.id %}selected{% endif %}>
+                                        {{ category.nama_kategori }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="harga_produk" class="form-label">Price (Rp)</label>
+                            <input type="number" class="form-control" id="harga_produk" name="harga_produk" step="0.01" value="{{ product.harga_produk }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="stok_produk" class="form-label">Stock</label>
+                            <input type="number" class="form-control" id="stok_produk" name="stok_produk" value="{{ product.stok_produk }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="foto_produk" class="form-label">Product Image</label>
+                            <input type="file" class="form-control" id="foto_produk" name="foto_produk" accept="image/*">
+                            {% if product.foto_produk %}
+                                <div class="mt-2">
+                                    <img src="{{ product.foto_produk.url }}" alt="{{ product.nama_produk }}" width="100">
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">Update Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

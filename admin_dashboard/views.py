@@ -12,6 +12,13 @@ import json
 import os
 from django.conf import settings
 from datetime import timedelta
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+import logging
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 # Untuk mengelola sesi login pelanggan
 def login_required_pelanggan(view_func):
@@ -46,8 +53,28 @@ def register_pelanggan(request):
         form = PelangganRegistrationForm(request.POST)
         if form.is_valid():
             try:
-                form.save()
+                # Save the customer
+                pelanggan = form.save()
                 username = form.cleaned_data.get('username')
+                
+                # Check if customer has birthday today and send immediate notification
+                from datetime import date
+                today = date.today()
+                is_birthday = (
+                    pelanggan.tanggal_lahir and 
+                    pelanggan.tanggal_lahir.month == today.month and 
+                    pelanggan.tanggal_lahir.day == today.day
+                )
+                
+                if is_birthday:
+                    # Create birthday notification
+                    create_notification(
+                        pelanggan, 
+                        "Selamat Ulang Tahun!", 
+                        "Selamat ulang tahun! Nikmati diskon 10% untuk pembelanjaan hari ini. Diskon otomatis akan diterapkan saat checkout jika total belanja mencapai Rp 5.000.000.",
+                        '/produk/'
+                    )
+                
                 messages.success(request, f'Akun {username} berhasil dibuat. Silakan login untuk melanjutkan.')
                 return redirect('login_pelanggan')
             except Exception as e:
@@ -106,7 +133,6 @@ def dashboard_pelanggan(request):
     }
     return render(request, 'dashboard_pelanggan.html', context)
 
-@login_required_pelanggan
 def produk_list(request):
     # Get all categories for the filter UI
     kategori_list = Kategori.objects.all()
@@ -122,34 +148,105 @@ def produk_list(request):
         
     pelanggan_id = request.session.get('pelanggan_id')
     
+    # Get the customer object to check birthday and total spending
+    pelanggan = get_object_or_404(Pelanggan, pk=pelanggan_id) if pelanggan_id else None
+    
+    # Check if customer qualifies for birthday discount
+    from datetime import date
+    today = date.today()
+    is_birthday = False
+    is_loyal = False
+    total_spending = 0
+    
+    if pelanggan:
+        is_birthday = (
+            pelanggan.tanggal_lahir and 
+            pelanggan.tanggal_lahir.month == today.month and 
+            pelanggan.tanggal_lahir.day == today.day
+        )
+        
+        # Kondisi B: Total semua Transaksi dengan status DIBAYAR/DIKIRIM/SELESAI pelanggan tersebut ≥ Rp 5.000.000
+        from django.db.models import Sum
+        total_spending = Transaksi.objects.filter(
+            pelanggan=pelanggan,
+            status_transaksi__in=['DIBAYAR', 'DIKIRIM', 'SELESAI']
+        ).aggregate(
+            total_belanja=Sum('total')
+        )['total_belanja'] or 0
+        
+        is_loyal = total_spending >= 5000000
+    
+    # Check for P2-B: Loyalitas Instan (Non-Loyal + Birthday + Cart Total >= 5,000,000)
+    qualifies_for_instant_loyalty = is_birthday and not is_loyal if pelanggan else False
+    
+    # Calculate total cart value before discounts for P2-B check
+    total_cart_value = 0
+    keranjang_belanja = request.session.get('keranjang', {}) if pelanggan else {}
+    for produk_id_str, jumlah in keranjang_belanja.items():
+        try:
+            produk_id = int(produk_id_str)
+            produk_obj = get_object_or_404(Produk, pk=produk_id)
+            # Ensure all calculations use Decimal type
+            harga_produk_decimal = Decimal(str(produk_obj.harga_produk))
+            jumlah_decimal = Decimal(str(jumlah))
+            total_cart_value += harga_produk_decimal * jumlah_decimal
+        except Exception:
+            pass  # Skip invalid items
+    
+    qualifies_for_p2b = qualifies_for_instant_loyalty and total_cart_value >= Decimal('5000000')
+    
+    # Customer qualifies for P2-A: Loyalitas Permanen (Loyal + Birthday)
+    qualifies_for_p2a = is_birthday and is_loyal if pelanggan else False
+    
+    # P1: Get top purchased products for this customer
+    top_products_ids = []
+    if pelanggan:
+        try:
+            top_products = pelanggan.get_top_purchased_products(limit=3)
+            top_products_ids = [p.id for p in top_products]
+        except Exception:
+            # Fallback if method doesn't work
+            top_products_ids = []
+    
     # Add discount information to each product
     for p in produk:
-        # Check for product-specific discount first
-        diskon_produk = DiskonPelanggan.objects.filter(
-            pelanggan_id=pelanggan_id,
-            produk=p,
-            status='aktif'
-        ).first()
-        
-        # If no product-specific discount, check for general discount
-        if not diskon_produk:
+        # Check for product-specific discount first (Priority 1)
+        diskon_produk = None
+        if pelanggan:
             diskon_produk = DiskonPelanggan.objects.filter(
                 pelanggan_id=pelanggan_id,
-                produk__isnull=True,  # General discount (not product-specific)
+                produk=p,
                 status='aktif'
             ).first()
+            
+            # If no product-specific discount, check for general discount
+            if not diskon_produk:
+                diskon_produk = DiskonPelanggan.objects.filter(
+                    pelanggan_id=pelanggan_id,
+                    produk__isnull=True,  # General discount (not product-specific)
+                    status='aktif'
+                ).first()
+        
+        # P2-A: Only show birthday discount label for top 3 favorite products (Loyal + Birthday)
+        if not diskon_produk and qualifies_for_p2a and p.id in top_products_ids:
+            # Create a mock discount object for display purposes only
+            diskon_produk = type('DiskonPelanggan', (), {
+                'persen_diskon': 10,
+                'pesan': 'Diskon Ulang Tahun untuk Pelanggan Loyal'
+            })()
         
         # Attach discount info to product object
         p.diskon_aktif = diskon_produk
     
     # Get notification count
-    notifikasi_count = get_notification_count(pelanggan_id)
+    notifikasi_count = get_notification_count(pelanggan_id) if pelanggan_id else 0
     
     context = {
         'produk': produk,
         'kategori_list': kategori_list,
         'kategori_terpilih': kategori_id,
-        'notifikasi_count': notifikasi_count
+        'notifikasi_count': notifikasi_count,
+        'qualifies_for_birthday_discount': qualifies_for_p2a  # For showing favorite product badge
     }
     return render(request, 'product_list.html', context)
 
@@ -191,6 +288,20 @@ def produk_list_public(request):
     }
     return render(request, 'product_list_public.html', context)
 
+
+def produk_detail(request, pk):
+    # Get the product
+    produk = get_object_or_404(Produk, pk=pk)
+    
+    # Get all categories for the filter UI
+    kategori_list = Kategori.objects.all()
+    
+    context = {
+        'produk': produk,
+        'kategori_list': kategori_list
+    }
+    return render(request, 'product_detail.html', context)
+
 @login_required_pelanggan
 def keranjang(request):
     keranjang_belanja = request.session.get('keranjang', {})
@@ -228,9 +339,42 @@ def keranjang(request):
     
     is_loyal = total_spending >= 5000000
     
-    # Customer qualifies for birthday discount if both conditions are met
-    qualifies_for_birthday_discount = is_birthday and is_loyal
-
+    # Check for P2-B: Loyalitas Instan (Birthday + Cart Total >= 5,000,000)
+    # Calculate total cart value before discounts for P2-B check
+    total_cart_value = 0
+    for produk_id_str, jumlah in keranjang_belanja.items():
+        try:
+            produk_id = int(produk_id_str)
+            produk = get_object_or_404(Produk, pk=produk_id)
+            # Ensure all calculations use Decimal type
+            harga_produk_decimal = Decimal(str(produk.harga_produk))
+            jumlah_decimal = Decimal(str(jumlah))
+            total_cart_value += harga_produk_decimal * jumlah_decimal
+        except Exception:
+            pass  # Skip invalid items
+    
+    # P2-B eligibility: Birthday + Cart Total >= 5,000,000 (regardless of loyalty status)
+    qualifies_for_p2b = is_birthday and total_cart_value >= Decimal('5000000')
+    
+    # Check for birthday discount (24-hour loyal discount)
+    has_active_birthday_discount = False
+    if pelanggan.birthday_discount_end_time and pelanggan.birthday_discount_end_time > timezone.now():
+        has_active_birthday_discount = True
+    
+    # For non-loyal birthday customers, check for conditional discount
+    qualifies_for_conditional_discount = False
+    conditional_discount_amount = 0
+    
+    if is_birthday and not pelanggan.is_loyal:
+        # Calculate remaining amount needed for loyalty
+        remaining_for_loyalty = Decimal('5000000') - pelanggan.total_spending
+        
+        # If cart total >= remaining amount, qualify for conditional discount
+        if total_cart_value >= remaining_for_loyalty:
+            qualifies_for_conditional_discount = True
+            conditional_discount_amount = remaining_for_loyalty
+    
+    # Apply discounts to products
     for produk_id, jumlah in keranjang_belanja.items():
         produk = get_object_or_404(Produk, pk=produk_id)
         harga_asli = produk.harga_produk * jumlah
@@ -256,16 +400,32 @@ def keranjang(request):
                 status='aktif'
             ).first()
         
-        # Apply birthday discount if customer qualifies
-        if qualifies_for_birthday_discount and not diskon_produk:
-            # Create a temporary discount object for birthday discount
-            from .models import DiskonPelanggan
-            diskon_produk = type('DiskonPelanggan', (), {
+        # Apply birthday discount if active
+        if has_active_birthday_discount:
+            diskon = type('DiskonPelanggan', (), {
                 'persen_diskon': 10,
-                'pesan': 'Diskon Ulang Tahun untuk Pelanggan Loyal'
+                'pesan': 'Diskon Ulang Tahun 24 Jam'
             })()
-        
-        if diskon_produk:
+            # Ensure all calculations use Decimal type
+            sub_total_decimal = Decimal(str(sub_total))
+            persen_diskon_decimal = Decimal('10')
+            potongan_harga = int(sub_total_decimal * (persen_diskon_decimal / 100))
+            harga_setelah_diskon = sub_total_decimal - Decimal(str(potongan_harga))
+            sub_total = harga_setelah_diskon
+        # Apply conditional discount for non-loyal birthday customers
+        elif qualifies_for_conditional_discount and not diskon_produk:
+            diskon = type('DiskonPelanggan', (), {
+                'persen_diskon': 10,
+                'pesan': 'Diskon Ulang Tahun Bersyarat'
+            })()
+            # Ensure all calculations use Decimal type
+            sub_total_decimal = Decimal(str(sub_total))
+            persen_diskon_decimal = Decimal('10')
+            potongan_harga = int(sub_total_decimal * (persen_diskon_decimal / 100))
+            harga_setelah_diskon = sub_total_decimal - Decimal(str(potongan_harga))
+            sub_total = harga_setelah_diskon
+        # Apply regular discount if available and no birthday discount applied
+        elif diskon_produk:
             diskon = diskon_produk
             # Ensure all calculations use Decimal type
             sub_total_decimal = Decimal(str(sub_total))
@@ -288,6 +448,12 @@ def keranjang(request):
             'harga_setelah_diskon': harga_setelah_diskon
         })
 
+    # Calculate birthday discount amount for display
+    birthday_discount_amount = 0
+    if has_active_birthday_discount or qualifies_for_conditional_discount:
+        # Calculate 10% of total cart value
+        birthday_discount_amount = int(Decimal('0.10') * Decimal(str(total_sebelum_diskon)))
+    
     context = {
         'produk_di_keranjang': produk_di_keranjang,
         'total_belanja': total_belanja,
@@ -295,10 +461,15 @@ def keranjang(request):
         'total_diskon': total_diskon,
         'total_setelah_diskon': total_sebelum_diskon - total_diskon,
         'notifikasi_count': notifikasi_count,
-        'qualifies_for_birthday_discount': qualifies_for_birthday_discount,
         'is_birthday': is_birthday,
         'is_loyal': is_loyal,
-        'total_spending': total_spending
+        'total_spending': total_spending,
+        'qualifies_for_p2b': qualifies_for_p2b,  # For showing P2-B eligibility in cart
+        'total_cart_value': total_cart_value,  # For showing cart value in cart
+        'has_active_birthday_discount': has_active_birthday_discount,
+        'qualifies_for_conditional_discount': qualifies_for_conditional_discount,
+        'conditional_discount_amount': conditional_discount_amount,
+        'birthday_discount_amount': birthday_discount_amount
     }
     return render(request, 'keranjang.html', context)
 
@@ -308,6 +479,8 @@ def tambah_ke_keranjang(request, produk_id):
     jumlah = int(request.POST.get('jumlah', 1))
 
     if jumlah <= 0:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': 'Jumlah produk harus lebih dari 0.'})
         messages.error(request, 'Jumlah produk harus lebih dari 0.')
         return redirect('produk_list')
 
@@ -320,8 +493,74 @@ def tambah_ke_keranjang(request, produk_id):
         keranjang_belanja[produk_id_str] = jumlah
     
     request.session['keranjang'] = keranjang_belanja
+    
+    # Calculate total items in cart
+    total_keranjang = sum(keranjang_belanja.values())
+    
+    # Check if customer qualifies for birthday discount and send notification if not already sent
+    pelanggan_id = request.session.get('pelanggan_id')
+    if pelanggan_id:
+        pelanggan = get_object_or_404(Pelanggan, pk=pelanggan_id)
+        
+        # Check if customer has birthday today
+        from datetime import date
+        today = date.today()
+        is_birthday = (
+            pelanggan.tanggal_lahir and 
+            pelanggan.tanggal_lahir.month == today.month and 
+            pelanggan.tanggal_lahir.day == today.day
+        )
+        
+        if is_birthday:
+            # Check if customer has already received a birthday notification today
+            existing_notification = Notifikasi.objects.filter(
+                pelanggan=pelanggan,
+                tipe_pesan__in=["Selamat Ulang Tahun!", "Diskon Ulang Tahun Permanen", "Diskon Ulang Tahun Instan"],
+                created_at__date=today
+            ).first()
+            
+            # If no birthday notification sent today, create one
+            if not existing_notification:
+                # Calculate total spending for paid transactions
+                from django.db.models import Sum
+                total_spending = Transaksi.objects.filter(
+                    pelanggan=pelanggan,
+                    status_transaksi__in=['DIBAYAR', 'DIKIRIM', 'SELESAI']
+                ).aggregate(
+                    total_belanja=Sum('total')
+                )['total_belanja'] or 0
+                
+                # Check customer loyalty status
+                is_loyal = total_spending >= 5000000
+                
+                # Send appropriate notification based on loyalty status
+                if is_loyal:
+                    # P2-A: Loyalitas Permanen (Loyal + Birthday)
+                    create_notification(
+                        pelanggan,
+                        "Diskon Ulang Tahun Permanen",
+                        "Selamat ulang tahun! Diskon 10% otomatis aktif pada 3 produk terfavorit Anda.",
+                        '/produk/'
+                    )
+                else:
+                    # P2-B: Loyalitas Instan (Non-Loyal + Birthday)
+                    create_notification(
+                        pelanggan,
+                        "Diskon Ulang Tahun Instan",
+                        "Selamat ulang tahun! Raih Diskon 10% untuk SEMUA belanjaan hari ini jika total keranjang Anda mencapai Rp 5.000.000.",
+                        '/produk/'
+                    )
+    
+    # Handle AJAX request
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'message': f'{jumlah} {produk.nama_produk} berhasil ditambahkan ke keranjang.',
+            'cart_total_items': total_keranjang
+        })
+    
+    # Handle regular request (fallback)
     messages.success(request, f'{jumlah} {produk.nama_produk} berhasil ditambahkan ke keranjang.')
-
     return redirect('produk_list')
 
 @login_required_pelanggan
@@ -458,6 +697,54 @@ def proses_pembayaran(request):
                     
                     detail_list = []  # To store details for later use
                     
+                    # P1: Get top purchased products for this customer
+                    try:
+                        top_products = pelanggan.get_top_purchased_products(limit=3)
+                        top_products_ids = [p.id for p in top_products]
+                    except Exception:
+                        # Fallback if method doesn't work
+                        top_products_ids = []
+                    
+                    # Check if customer qualifies for birthday discount
+                    from datetime import date
+                    today = date.today()
+                    is_birthday = (
+                        pelanggan.tanggal_lahir and 
+                        pelanggan.tanggal_lahir.month == today.month and 
+                        pelanggan.tanggal_lahir.day == today.day
+                    )
+                    
+                    # Kondisi B: Total semua Transaksi dengan status DIBAYAR/DIKIRIM/SELESAI pelanggan tersebut ≥ Rp 5.000.000
+                    from django.db.models import Sum
+                    total_spending = Transaksi.objects.filter(
+                        pelanggan=pelanggan,
+                        status_transaksi__in=['DIBAYAR', 'DIKIRIM', 'SELESAI']
+                    ).aggregate(
+                        total_belanja=Sum('total')
+                    )['total_belanja'] or 0
+                    
+                    is_loyal = total_spending >= 5000000
+                    
+                    # Calculate total cart value before discounts for P2-B check
+                    total_cart_value = 0
+                    for produk_id_str, jumlah in keranjang_belanja.items():
+                        produk_id = int(produk_id_str)
+                        produk = get_object_or_404(Produk, pk=produk_id)
+                        # Ensure all calculations use Decimal type
+                        harga_produk_decimal = Decimal(str(produk.harga_produk))
+                        jumlah_decimal = Decimal(str(jumlah))
+                        total_cart_value += harga_produk_decimal * jumlah_decimal
+                    
+                    # Check for P2-B: Universal Birthday Discount (Birthday + Cart Total >= 5,000,000)
+                    # Logic: Ulang Tahun HARI INI AND Total Keranjang >= Rp 5000000
+                    is_p2b_eligible = (
+                        is_birthday and 
+                        total_cart_value >= Decimal('5000000')
+                    )
+                    
+                    # Customer qualifies for P2-A: Loyalitas Permanen (Loyal + Birthday)
+                    qualifies_for_p2a = is_birthday and is_loyal
+                    
                     for produk_id_str, jumlah in keranjang_belanja.items():
                         produk_id = int(produk_id_str)
                         produk = get_object_or_404(Produk, pk=produk_id)
@@ -468,7 +755,7 @@ def proses_pembayaran(request):
                         # Calculate price with discount if applicable
                         harga_satuan = produk.harga_produk
                         
-                        # Check for product-specific discount first
+                        # Check for product-specific discount first (Priority 1)
                         diskon_produk = DiskonPelanggan.objects.filter(
                             pelanggan_id=pelanggan_id,
                             produk=produk,
@@ -483,8 +770,24 @@ def proses_pembayaran(request):
                                 status='aktif'
                             ).first()
                         
-                        # Apply discount if found
-                        if diskon_produk:
+                        # If no manual discount found, check for birthday discounts (Priority 2)
+                        if not diskon_produk:
+                            # P2-A: Loyalitas Permanen - Apply 10% discount to top 3 favorite products
+                            if qualifies_for_p2a and produk_id in top_products_ids:
+                                # Apply 10% birthday discount
+                                harga_satuan_decimal = Decimal(str(harga_satuan))
+                                persen_diskon_decimal = Decimal('10')
+                                harga_satuan = harga_satuan_decimal - (harga_satuan_decimal * persen_diskon_decimal / 100)
+                            
+                            # P2-B: Loyalitas Instan - Apply 10% discount to all items in cart
+                            elif is_p2b_eligible:
+                                # Apply 10% birthday discount
+                                harga_satuan_decimal = Decimal(str(harga_satuan))
+                                persen_diskon_decimal = Decimal('10')
+                                harga_satuan = harga_satuan_decimal - (harga_satuan_decimal * persen_diskon_decimal / 100)
+                        
+                        # Apply manual discount if found (Priority 1)
+                        elif diskon_produk:
                             # Ensure all calculations use Decimal type
                             harga_satuan_decimal = Decimal(str(harga_satuan))
                             persen_diskon_decimal = Decimal(str(diskon_produk.persen_diskon))
@@ -737,15 +1040,20 @@ def akun(request):
     return render(request, 'akun.html', context)
 
 # Helper function to create notifications
-def create_notification(pelanggan, tipe_pesan, isi_pesan):
+def create_notification(pelanggan, tipe_pesan, isi_pesan, url_target='#'):
     """
-    Create a notification for a specific customer
+    Create a notification for a specific customer with optional CTA URL
     """
     try:
+        # Add CTA URL to the message if provided
+        if url_target and url_target != '#':
+            isi_pesan = f"{isi_pesan} <a href='{url_target}' class='alert-link'>Lihat detail</a>"
+        
         Notifikasi.objects.create(
             pelanggan=pelanggan,
             tipe_pesan=tipe_pesan,
-            isi_pesan=isi_pesan
+            isi_pesan=isi_pesan,
+            target_url=url_target if url_target and url_target != '#' else None
         )
         return True
     except Exception as e:
@@ -753,17 +1061,23 @@ def create_notification(pelanggan, tipe_pesan, isi_pesan):
         return False
 
 # Helper function to create notifications for all customers
-def create_notification_for_all_customers(tipe_pesan, isi_pesan):
+def create_notification_for_all_customers(tipe_pesan, isi_pesan, url_target='#'):
     """
-    Create a notification for all customers
+    Create a notification for all customers with optional CTA URL
     """
     try:
         pelanggan_list = Pelanggan.objects.all()
         for pelanggan in pelanggan_list:
+            # Add CTA URL to the message if provided
+            pesan = isi_pesan
+            if url_target and url_target != '#':
+                pesan = f"{isi_pesan} <a href='{url_target}' class='alert-link'>Lihat detail</a>"
+            
             Notifikasi.objects.create(
                 pelanggan=pelanggan,
                 tipe_pesan=tipe_pesan,
-                isi_pesan=isi_pesan
+                isi_pesan=pesan,
+                target_url=url_target if url_target and url_target != '#' else None
             )
         return True
     except Exception as e:
@@ -839,334 +1153,101 @@ def send_birthday_email(customer, total_spending):
     return True
 
 
-def dashboard_analitik(request):
+def send_notification_email(subject, template_name, context, recipient_list, url_target='#'):
     """
-    Custom analytics dashboard view that provides data analytics:
-    - Monthly Revenue (last 6 months)
-    - Top 5 Best Selling Products
-    - Top 3 Loyal Customers
+    Send email notification using HTML template with optional CTA URL
     """
-    from django.db.models import Sum
-    from django.utils import timezone
-    from datetime import timedelta
-    import json
-    
-    # Calculate monthly revenue for the last 6 months
-    today = timezone.now()
-    monthly_revenue = []
-    
-    # Define status that count as paid transactions
-    PAID_STATUSES = ['DIBAYAR', 'DIKIRIM', 'SELESAI']
-    
-    for i in range(5, -1, -1):  # Last 6 months (including current)
-        start_date = (today - timedelta(days=30*i)).replace(day=1)
-        if i == 0:  # Current month
-            end_date = today
-        else:
-            # Last day of the month
-            next_month = (today - timedelta(days=30*(i-1))).replace(day=1)
-            end_date = next_month - timedelta(days=1)
-            
-        monthly_total = Transaksi.objects.filter(
-            status_transaksi__in=PAID_STATUSES,
-            tanggal__gte=start_date,
-            tanggal__lte=end_date
-        ).aggregate(total=Sum('total'))['total'] or 0
+    try:
+        # Add CTA URL to context if provided
+        if url_target and url_target != '#':
+            context['cta_url'] = url_target
         
-        monthly_revenue.append({
-            'month': start_date.strftime('%B %Y'),
-            'total': float(monthly_total)
+        # Render HTML content
+        html_message = render_to_string(template_name, context)
+        # Create plain text version
+        plain_message = strip_tags(html_message)
+        
+        # Send email
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=recipient_list,
+            html_message=html_message,
+            fail_silently=False,
+        )
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send email: {e}")
+        return False
+
+# API Views for Notifications
+@login_required_pelanggan
+def fetch_unread_notifications(request):
+    """
+    API endpoint to fetch unread notifications for the current customer
+    """
+    try:
+        pelanggan_id = request.session.get('pelanggan_id')
+        if not pelanggan_id:
+            return JsonResponse({'error': 'Not authenticated'}, status=401)
+        
+        # Get unread notifications
+        notifications = Notifikasi.objects.filter(
+            pelanggan_id=pelanggan_id,
+            is_read=False
+        ).order_by('-created_at')
+        
+        # Serialize notifications
+        notifications_data = []
+        for notification in notifications:
+            notifications_data.append({
+                'id': notification.id,
+                'tipe_pesan': notification.tipe_pesan,
+                'isi_pesan': notification.isi_pesan,
+                'created_at': notification.created_at.isoformat(),
+                'target_url': notification.target_url
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'notifications': notifications_data,
+            'count': len(notifications_data)
         })
-    
-    # Get top 5 best selling products (by quantity)
-    from .models import DetailTransaksi, Produk
-    top_products = DetailTransaksi.objects.filter(
-        transaksi__status_transaksi__in=PAID_STATUSES
-    ).values(
-        'produk__nama_produk'
-    ).annotate(
-        total_quantity=Sum('jumlah_produk'),
-        total_revenue=Sum('sub_total')
-    ).order_by('-total_quantity')[:5]
-    
-    # Get top 3 loyal customers (by total purchase amount)
-    top_customers = Transaksi.objects.filter(
-        status_transaksi__in=PAID_STATUSES
-    ).values(
-        'pelanggan__nama_pelanggan'
-    ).annotate(
-        total_spent=Sum('total')
-    ).order_by('-total_spent')[:3]
-    
-    context = {
-        'monthly_revenue': json.dumps(monthly_revenue),
-        'top_products': top_products,
-        'top_customers': top_customers
-    }
-    
-    return render(request, 'admin_dashboard/dashboard_analitik.html', context)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
-# Import statements for the new view
-import django_tables2 as tables
-from django_tables2 import RequestConfig
-from django_tables2.export import TableExport
-from django.http import HttpResponse
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib import colors
-from io import BytesIO
-from .tables import TransaksiTable
-from .filters import TransaksiFilter
-from .models import Transaksi
 
-def laporan_transaksi(request):
+@login_required_pelanggan
+def mark_notification_as_read(request):
     """
-    View to generate transaction report with filtering and table features
+    API endpoint to mark a notification as read
     """
-    # Initialize the filter with request data and all transactions queryset
-    filter = TransaksiFilter(request.GET, queryset=Transaksi.objects.all())
-    
-    # Initialize the table with the filtered queryset
-    table = TransaksiTable(filter.qs)
-    
-    # Configure the table with request for sorting and pagination
-    RequestConfig(request, paginate={"per_page": 25}).configure(table)
-    
-    # Check if this is a PDF export request
-    if request.GET.get('_pdf') == 'true':
-        # Create a PDF buffer
-        buffer = BytesIO()
+    try:
+        if request.method != 'POST':
+            return JsonResponse({'error': 'Method not allowed'}, status=405)
         
-        # Create the PDF object, using the buffer as its "file."
-        doc = SimpleDocTemplate(buffer, pagesize=A4)
-        elements = []
+        pelanggan_id = request.session.get('pelanggan_id')
+        if not pelanggan_id:
+            return JsonResponse({'error': 'Not authenticated'}, status=401)
         
-        # Define styles
-        styles = getSampleStyleSheet()
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            fontSize=18,
-            spaceAfter=30,
-            alignment=1  # Center alignment
+        notification_id = request.POST.get('id')
+        if not notification_id:
+            return JsonResponse({'error': 'Notification ID is required'}, status=400)
+        
+        # Mark notification as read
+        notification = get_object_or_404(
+            Notifikasi, 
+            id=notification_id, 
+            pelanggan_id=pelanggan_id
         )
+        notification.is_read = True
+        notification.save()
         
-        # Add title
-        title = Paragraph("Laporan Transaksi - Barokah Jaya Beton", title_style)
-        elements.append(title)
-        elements.append(Spacer(1, 0.2*inch))
-        
-        # Prepare data for the table
-        table_data = [['No', 'Tanggal', 'Nama Pelanggan', 'Detail Produk', 'Total Harga']]
-        
-        # Get all data without pagination for PDF
-        all_data = filter.qs
-        # Definisikan daftar status yang dianggap sebagai pendapat
-        PAID_STATUSES = ['DIBAYAR', 'DIKIRIM', 'SELESAI']
-        
-        # Hitung Total Pendapatan hanya untuk transaksi dengan status pembayaran yang berhasil
-        total_pendapatan = 0
-        paid_transactions = all_data.filter(status_transaksi__in=PAID_STATUSES)
-        for transaksi in paid_transactions:
-            total_pendapatan += transaksi.total if transaksi.total else 0
-        
-        for index, transaksi in enumerate(all_data, 1):
-            # Format tanggal tanpa waktu
-            tanggal_formatted = transaksi.tanggal.strftime('%d/%m/%Y') if transaksi.tanggal else ''
-            
-            # Dapatkan detail produk
-            detail_produk_list = []
-            detail_transaksi = transaksi.detailtransaksi_set.all()
-            for detail in detail_transaksi:
-                detail_produk_list.append(f"{detail.produk.nama_produk} (x{detail.jumlah_produk})")
-            
-            detail_produk_str = '\n'.join(detail_produk_list) if detail_produk_list else '-'
-            
-            table_data.append([
-                str(index),
-                tanggal_formatted,
-                str(transaksi.pelanggan.nama_pelanggan if transaksi.pelanggan else ''),
-                detail_produk_str,
-                f"Rp {transaksi.total:,.0f}" if transaksi.total else "Rp 0"
-            ])
-        
-        # Create the table
-        pdf_table = Table(table_data)
-        pdf_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # Align text to top for multi-line content
-        ]))
-        
-        elements.append(pdf_table)
-        
-        # Add total pendapatan
-        elements.append(Spacer(1, 0.2*inch))
-        total_pendapatan_para = Paragraph(f"<b>Total Pendapatan Keseluruhan: Rp {total_pendapatan:,.0f}</b>", styles['Normal'])
-        elements.append(total_pendapatan_para)
-        
-        # Build the PDF
-        doc.build(elements)
-        
-        # Get the value of the BytesIO buffer and write it to the response
-        pdf_value = buffer.getvalue()
-        buffer.close()
-        
-        # Create the HTTP response
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = 'attachment; filename="laporan_transaksi.pdf"'
-        response.write(pdf_value)
-        
-        return response
-    
-    context = {
-        'filter': filter,
-        'table': table
-    }
-    
-    return render(request, 'admin_dashboard/laporan_transaksi.html', context)
-
-# Import statements for the best selling products report
-from django.db.models import Sum, Q
-from .tables import ProdukTerlarisTable
-from .filters import ProdukTerlarisFilter
-from .models import DetailTransaksi
-
-def laporan_produk_terlaris(request):
-    """
-    View to generate best selling products report with filtering and table features
-    """
-    # Initialize the filter with request data
-    filter = ProdukTerlarisFilter(request.GET, queryset=Produk.objects.all())
-    
-    # Get the filtered queryset
-    filtered_produk = filter.qs
-    
-    # Apply date filters if provided
-    tanggal_gte = request.GET.get('tanggal_transaksi__gte')
-    tanggal_lte = request.GET.get('tanggal_transaksi__lte')
-    
-    # Start with all products
-    produk_queryset = filtered_produk
-    
-    # Build the query for DetailTransaksi based on date filters
-    # Pastikan hanya menghitung untuk transaksi dengan status pembayaran yang berhasil
-    detail_transaksi_filter = Q(detailtransaksi__transaksi__status_transaksi__in=['DIBAYAR', 'DIKIRIM', 'SELESAI'])
-    
-    if tanggal_gte:
-        detail_transaksi_filter &= Q(detailtransaksi__transaksi__tanggal__gte=tanggal_gte)
-    
-    if tanggal_lte:
-        detail_transaksi_filter &= Q(detailtransaksi__transaksi__tanggal__lte=tanggal_lte)
-    
-    # Annotate with aggregated data
-    produk_queryset = produk_queryset.annotate(
-        total_kuantitas_terjual=Sum(
-            'detailtransaksi__jumlah_produk',
-            filter=detail_transaksi_filter
-        ),
-        total_pendapatan=Sum(
-            'detailtransaksi__sub_total',
-            filter=detail_transaksi_filter
-        )
-    ).filter(total_kuantitas_terjual__gt=0).order_by('-total_kuantitas_terjual')
-    
-    # Initialize the table with the annotated queryset
-    table = ProdukTerlarisTable(produk_queryset)
-    
-    # Configure the table with request for sorting and pagination
-    RequestConfig(request, paginate={"per_page": 25}).configure(table)
-    
-    # Check if this is a PDF export request
-    if request.GET.get('_pdf') == 'true':
-        # Create a PDF buffer
-        buffer = BytesIO()
-        
-        # Create the PDF object, using the buffer as its "file."
-        doc = SimpleDocTemplate(buffer, pagesize=A4)
-        elements = []
-        
-        # Define styles
-        styles = getSampleStyleSheet()
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            fontSize=18,
-            spaceAfter=30,
-            alignment=1  # Center alignment
-        )
-        
-        # Add title
-        title = Paragraph("Laporan Produk Terlaris - Barokah Jaya Beton", title_style)
-        elements.append(title)
-        elements.append(Spacer(1, 0.2*inch))
-        
-        # Prepare data for the table
-        table_data = [['No', 'Nama Produk', 'Total Kuantitas Terjual', 'Total Pendapatan']]
-        
-        # Get all data without pagination for PDF
-        all_data = produk_queryset
-        # Hitung total_pendapatan_keseluruhan menggunakan queryset yang sudah di-annotate
-        total_pendapatan_keseluruhan = 0
-        for index, produk in enumerate(all_data, 1):
-            pendapatan = produk.total_pendapatan if produk.total_pendapatan else 0
-            total_pendapatan_keseluruhan += pendapatan
-            
-            table_data.append([
-                str(index),
-                str(produk.nama_produk),
-                str(produk.total_kuantitas_terjual or 0),
-                f"Rp {pendapatan:,.0f}"
-            ])
-        
-        # Create the table
-        pdf_table = Table(table_data)
-        pdf_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        
-        elements.append(pdf_table)
-        
-        # Add total pendapatan keseluruhan
-        elements.append(Spacer(1, 0.2*inch))
-        total_pendapatan_para = Paragraph(f"<b>Total Pendapatan Keseluruhan: Rp {total_pendapatan_keseluruhan:,.0f}</b>", styles['Normal'])
-        elements.append(total_pendapatan_para)
-        
-        # Build the PDF
-        doc.build(elements)
-        
-        # Get the value of the BytesIO buffer and write it to the response
-        pdf_value = buffer.getvalue()
-        buffer.close()
-        
-        # Create the HTTP response
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = 'attachment; filename="laporan_produk_terlaris.pdf"'
-        response.write(pdf_value)
-        
-        return response
-    
-    context = {
-        'filter': filter,
-        'table': table
-    }
-    
-    return render(request, 'admin_dashboard/laporan_produk_terlaris.html', context)
-
+        return JsonResponse({
+            'success': True,
+            'message': 'Notification marked as read',
+            'target_url': notification.target_url
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

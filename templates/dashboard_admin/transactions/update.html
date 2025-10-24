@@ -1,0 +1,73 @@
+{% extends 'dashboard_admin/base.html' %}
+
+{% block title %}Edit Transaction{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Edit Transaction</h2>
+        <a href="{% url 'dashboard_admin:transaction_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Transactions
+        </a>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="status_transaksi" class="form-label">Status</label>
+                            <select class="form-control" id="status_transaksi" name="status_transaksi" required>
+                                <option value="DIPROSES" {% if transaction.status_transaksi == "DIPROSES" %}selected{% endif %}>Processed</option>
+                                <option value="DIBAYAR" {% if transaction.status_transaksi == "DIBAYAR" %}selected{% endif %}>Paid</option>
+                                <option value="DIKIRIM" {% if transaction.status_transaksi == "DIKIRIM" %}selected{% endif %}>Shipped</option>
+                                <option value="SELESAI" {% if transaction.status_transaksi == "SELESAI" %}selected{% endif %}>Completed</option>
+                                <option value="DIBATALKAN" {% if transaction.status_transaksi == "DIBATALKAN" %}selected{% endif %}>Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="ongkir" class="form-label">Shipping Cost (Rp)</label>
+                            <input type="number" class="form-control" id="ongkir" name="ongkir" step="0.01" value="{{ transaction.ongkir }}">
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Update Transaction</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Transaction Summary</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <strong>Transaction ID:</strong> #{{ transaction.id }}
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Customer:</strong> {{ transaction.pelanggan.nama_pelanggan }}
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Current Status:</strong> 
+                            <span class="badge bg-{{ transaction.status_transaksi|lower }}">
+                                {{ transaction.status_transaksi }}
+                            </span>
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Total Amount:</strong> Rp {{ transaction.total|floatformat:0 }}
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Shipping Cost:</strong> Rp {{ transaction.ongkir|floatformat:0 }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

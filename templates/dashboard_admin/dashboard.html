@@ -1,0 +1,249 @@
+{% extends 'dashboard_admin/base.html' %}
+{% load humanize %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Dashboard Overview</h2>
+    
+    <!-- Section 1: Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; overflow: hidden;">
+                <div class="card-body text-center py-4">
+                    <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
+                        <i class="fas fa-boxes text-success" style="font-size: 28px;"></i>
+                    </div>
+                    <h5 class="card-title text-muted mb-1">Total Products</h5>
+                    <p class="card-text fw-bold mb-0" style="font-size: 2rem; color: #059212;">{{ total_products }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; overflow: hidden;">
+                <div class="card-body text-center py-4">
+                    <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
+                        <i class="fas fa-users text-primary" style="font-size: 28px;"></i>
+                    </div>
+                    <h5 class="card-title text-muted mb-1">Total Customers</h5>
+                    <p class="card-text fw-bold mb-0" style="font-size: 2rem; color: #059212;">{{ total_customers }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; overflow: hidden;">
+                <div class="card-body text-center py-4">
+                    <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
+                        <i class="fas fa-shopping-cart text-info" style="font-size: 28px;"></i>
+                    </div>
+                    <h5 class="card-title text-muted mb-1">Total Transactions</h5>
+                    <p class="card-text fw-bold mb-0" style="font-size: 2rem; color: #059212;">{{ total_transactions }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; overflow: hidden;">
+                <div class="card-body text-center py-4">
+                    <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
+                        <i class="fas fa-wallet text-warning" style="font-size: 28px;"></i>
+                    </div>
+                    <h5 class="card-title text-muted mb-1">Total Revenue</h5>
+                    <p class="card-text fw-bold mb-0" style="font-size: 1.5rem; color: #059212;">Rp {{ total_revenue|floatformat:0|intcomma }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Section 2: Analytics Charts -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Analytics Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <h6>Monthly Revenue</h6>
+                            <div class="chart-container">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <h6>Product Category Distribution</h6>
+                            <div class="chart-container">
+                                <canvas id="categoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Section 3: Recent Data -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Transactions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in recent_transactions %}
+                                <tr>
+                                    <td>{{ transaction.id }}</td>
+                                    <td>{{ transaction.pelanggan.nama_pelanggan }}</td>
+                                    <td>{{ transaction.tanggal|date:"d M Y" }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ transaction.status_transaksi|lower }}">{{ transaction.status_transaksi }}</span>
+                                    </td>
+                                    <td>Rp {{ transaction.total|floatformat:0|intcomma }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No transactions found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Low Stock Products</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th>Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in low_stock_products %}
+                                <tr>
+                                    <td>{{ product.nama_produk }}</td>
+                                    <td>{{ product.kategori.nama_kategori|default:"-" }}</td>
+                                    <td>{{ product.stok_produk }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No low stock products found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Get dashboard data from context
+    var monthlyRevenue = {{ monthly_revenue|safe }};
+    
+    // Monthly Revenue Chart
+    document.addEventListener('DOMContentLoaded', function() {
+        var ctx1 = document.getElementById('revenueChart').getContext('2d');
+        
+        var labels = monthlyRevenue.map(item => item.month);
+        var data = monthlyRevenue.map(item => item.total);
+        
+        var revenueChart = new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Total Revenue (Rp)',
+                    data: data,
+                    backgroundColor: 'rgba(5, 146, 18, 0.7)',
+                    borderColor: 'rgba(5, 146, 18, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'Rp ' + value.toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Category Distribution Chart (dummy data for now)
+        var ctx2 = document.getElementById('categoryChart').getContext('2d');
+        var categoryChart = new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: ['Concrete Products', 'Accessories', 'Tools', 'Materials'],
+                datasets: [{
+                    data: [45, 25, 20, 10],
+                    backgroundColor: [
+                        'rgba(5, 146, 18, 0.7)',
+                        'rgba(9, 132, 227, 0.7)',
+                        'rgba(255, 159, 67, 0.7)',
+                        'rgba(153, 102, 255, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(5, 146, 18, 1)',
+                        'rgba(9, 132, 227, 1)',
+                        'rgba(255, 159, 67, 1)',
+                        'rgba(153, 102, 255, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

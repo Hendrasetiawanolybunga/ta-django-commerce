@@ -1,0 +1,145 @@
+{% extends 'dashboard_admin/base.html' %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 400px;
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Analytics Dashboard</h2>
+    
+    <!-- Revenue Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Monthly Revenue</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Best Selling Products and Top Customers -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Top 5 Best Selling Products</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Quantity Sold</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in top_products %}
+                                <tr>
+                                    <td>{{ product.produk__nama_produk }}</td>
+                                    <td>{{ product.total_quantity }}</td>
+                                    <td>Rp {{ product.total_revenue|floatformat:0 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No products found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Top 3 Loyal Customers</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Total Spent</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for customer in top_customers %}
+                                <tr>
+                                    <td>{{ customer.pelanggan__nama_pelanggan }}</td>
+                                    <td>Rp {{ customer.total_spent|floatformat:0 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center">No customers found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Monthly Revenue Chart
+    document.addEventListener('DOMContentLoaded', function() {
+        var ctx = document.getElementById('revenueChart').getContext('2d');
+        var monthlyRevenue = {{ monthly_revenue|safe }};
+        
+        var labels = monthlyRevenue.map(item => item.month);
+        var data = monthlyRevenue.map(item => item.total);
+        
+        var revenueChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Total Revenue (Rp)',
+                    data: data,
+                    backgroundColor: 'rgba(5, 146, 18, 0.7)',
+                    borderColor: 'rgba(5, 146, 18, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'Rp ' + value.toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

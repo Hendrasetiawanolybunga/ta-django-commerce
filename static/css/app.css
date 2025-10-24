@@ -1,0 +1,52 @@
+/* Favorite Product Badge */
+.favorite-product-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #ffc107;
+    color: #000;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.favorite-product-badge i {
+    margin-right: 5px;
+}
+
+/* Birthday Discount Badge */
+.birthday-discount-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: #e91e63;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.birthday-discount-badge i {
+    margin-right: 5px;
+}
+
+/* Target Gambar di dalam Modal Detail Produk */
+.modal-body img.product-image-detail {
+    max-width: 100%; /* Agar tidak melebihi lebar modal */
+    max-height: 70vh; /* Membatasi tinggi maksimum (70% dari Viewport Height) */
+    object-fit: contain; /* Memastikan gambar sepenuhnya terlihat dan menjaga rasio aspek */
+    display: block; /* Memperbaiki isu margin/alignment */
+    margin: auto; /* Memposisikan gambar di tengah modal */
+}
+
+/* Discount Label Z-Index */
+.discount-label {
+    position: absolute;
+    z-index: 10;
+}

@@ -20,18 +20,14 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'bluecode2004.pythonanywhere.com']
 # Application definition
 
 INSTALLED_APPS = [
-    'jazzmin',
-    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
-    'import_export',
-    'django_tables2',
-    'django_filters',
     'admin_dashboard',
+    'dashboard_admin',
 ]
 
 MIDDLEWARE = [
@@ -57,7 +53,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'admin_dashboard.context_processors.transaksi_notification_count',
+
             ],
         },
     },
@@ -125,123 +121,22 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
-# --- JAZZMIN SETTINGS ---
+
+# PENTING: Pastikan variabel DEBUG terdefinisi dengan benar
+
+if DEBUG:
+    # Untuk Development/Testing (Tidak mengirim email, hanya mencegah error)
+    EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'
+else:
+    # Untuk Production (Ganti dengan kredensial SMTP PythonAnywhere yang valid)
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.hostanda.com' # Placeholder
+    EMAIL_PORT = 587 # Placeholder
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = 'user@domain.com' # Placeholder
+    EMAIL_HOST_PASSWORD = 'password-anda' # Placeholder
+
+DEFAULT_FROM_EMAIL = 'admin@barokah.com'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'admin_dashboard.Admin'
-
-JAZZMIN_SETTINGS = {
-    "site_title": "Barokah Jaya Beton Admin",
-    "site_header": "Barokah Jaya Beton",
-    "site_brand": "Barokah Jaya Beton",
-    "site_logo": None,
-    
-    # Menghilangkan Group dan Model Admin (sesuai permintaan user untuk kesederhanaan)
-    "hide_models": [
-        "auth.Group",
-        "admin_dashboard.Admin", # Menyembunyikan model Admin yang Anda buat
-        "admin_dashboard.DetailTransaksi", # Biasanya tidak perlu diakses langsung
-    ],
-    
-    # 1. Mengatur Halaman Index Default ke Dashboard Analitik
-    "welcome_sign": "Selamat Datang di Dashboard Admin Barokah Jaya Beton",
-    "index_title": "Dashboard Analitik",
-    
-    "icons": {
-        "auth": "fas fa-users-cog",
-        "auth.user": "fas fa-user",
-        "auth.Group": "fas fa-users",
-        "admin_dashboard.Pelanggan": "fas fa-user-friends",
-        "admin_dashboard.Kategori": "fas fa-tags",
-        "admin_dashboard.DiskonPelanggan": "fas fa-percent",
-        "admin_dashboard.Produk": "fas fa-boxes",
-        "admin_dashboard.Transaksi": "fas fa-shopping-cart",
-        "admin_dashboard.DetailTransaksi": "fas fa-receipt",
-        "admin_dashboard.Notifikasi": "fas fa-bell",
-    },
-    
-    # 🚨 MODIFIKASI: Mengatur Urutan Menu (order_with_respect_to)
-    # KUNCI: Menambahkan "admin_dashboard" di posisi pertama agar custom_links di-prioritaskan
-    "order_with_respect_to": [
-        "admin_dashboard",             # <-- Menu Kustom Ditarik ke ATAS
-        "admin_dashboard.Kategori",    # Kategori
-        "admin_dashboard.Produk",      # Produk
-        "admin_dashboard.Pelanggan",   # Pelanggan
-        "admin_dashboard.Transaksi",   # Transaksi (Induk)
-        "admin_dashboard.DiskonPelanggan",# Diskon
-        "admin_dashboard.Notifikasi",  # Notifikasi
-        "auth", # Menarik model bawaan Django ke bawah (opsional, untuk memastikan auth.User dkk tetap di bawah)
-    ],
-    
-    # 3. Custom Links - Pindahkan Dashboard Analitik ke Paling Atas
-    "custom_links": {
-        "admin_dashboard": [
-            {
-                # PENTING: Dashboard Analitik sekarang di urutan pertama
-                "name": "Dashboard Analitik", 
-                "url": "dashboard_analitik", 
-                "icon": "fas fa-chart-bar"
-            },
-            {
-                "name": "Laporan Transaksi", 
-                "url": "laporan_transaksi", 
-                "icon": "fas fa-cash-register"
-            },
-            {
-                "name": "Laporan Produk Terlaris", 
-                "url": "laporan_produk_terlaris", 
-                "icon": "fas fa-medal"
-            },
-        ],
-    },
-    
-    "model_settings": {
-        "admin_dashboard.Transaksi": {
-            "name": "Transaksi",
-            "icon": "fas fa-shopping-cart",
-            "badge": "new_transaction_count",
-        },
-        # Mengubah nama menu bawaan 'Admin' menjadi sesuatu yang lebih umum (opsional)
-        "admin_dashboard.Admin": {
-            "name": "Pengguna Sistem",
-        },
-    },
-
-    # 4. Menghilangkan Link User (Admin/User Name) di Navbar Kanan Atas
-    # Set ini ke False agar menu setting/logout user tidak muncul
-    "show_ui_builder": "True",
-    "changeform_format": "horizontal_tabs",
-    "search_model": ["admin_dashboard.Produk", "admin_dashboard.Pelanggan"]
-}
-JAZZMIN_UI_TWEAKS = {
-    "navbar_small_text": False,
-    "footer_small_text": False,
-    "body_small_text": False,
-    "brand_small_text": False,
-    "brand_colour": "navbar-success",
-    "accent": "accent-navy",
-    "navbar": "navbar-success navbar-dark",
-    "no_navbar_border": False,
-    "navbar_fixed": False,
-    "layout_boxed": False,
-    "footer_fixed": False,
-    "sidebar_fixed": True,
-    "sidebar": "sidebar-light-success",
-    "sidebar_nav_small_text": True,
-    "sidebar_disable_expand": False,
-    "sidebar_nav_child_indent": False,
-    "sidebar_nav_compact_style": False,
-    "sidebar_nav_legacy_style": False,
-    "sidebar_nav_flat_style": True,
-    "theme": "yeti",
-    "dark_mode_theme": None,
-    "button_classes": {
-        "primary": "btn-outline-primary",
-        "secondary": "btn-outline-secondary",
-        "info": "btn-info",
-        "warning": "btn-warning",
-        "danger": "btn-danger",
-        "success": "btn-success"
-    },
-    "actions_sticky_top": False
-}

@@ -1,0 +1,93 @@
+{% extends 'dashboard_admin/base.html' %}
+{% load static %}
+
+{% block title %}Notifikasi{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Manajemen Notifikasi</h2>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Pelanggan</th>
+                            <th>Tipe Pesan</th>
+                            <th>Pesan</th>
+                            <th>Status</th>
+                            <th>Dibuat Pada</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for notification in page_obj %}
+                        <tr>
+                            <td>{{ notification.id }}</td>
+                            <td>{{ notification.pelanggan.nama_pelanggan }}</td>
+                            <td>{{ notification.tipe_pesan }}</td>
+                            <td>{{ notification.isi_pesan|truncatewords:10|safe }}</td>
+                            <td>
+                                {% if notification.is_read %}
+                                    <span class="badge bg-success">Dibaca</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Belum Dibaca</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ notification.created_at|date:"d M Y H:i" }}</td>
+                            <td>
+                                <a href="{% url 'dashboard_admin:notification_delete' notification.pk %}" class="btn btn-sm btn-danger" title="Hapus">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No notifications found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Notification pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}

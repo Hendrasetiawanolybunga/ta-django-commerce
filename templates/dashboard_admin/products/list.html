@@ -1,0 +1,137 @@
+{% extends 'dashboard_admin/base.html' %}
+{% load static %}
+
+{% block title %}Products{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Product Management</h2>
+        <a href="{% url 'dashboard_admin:product_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New Product
+        </a>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="search" class="form-label">Search</label>
+                        <input type="text" class="form-control" id="search" name="q" value="{{ query }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-control" id="category" name="category">
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}" {% if category_id|add:"0" == category.id %}selected{% endif %}>
+                                    {{ category.nama_kategori }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">Search</button>
+                        <a href="{% url 'dashboard_admin:product_list' %}" class="btn btn-secondary">Clear</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in page_obj %}
+                        <tr>
+                            <td>
+                                {% if product.foto_produk %}
+                                    <img src="{{ product.foto_produk.url }}" alt="{{ product.nama_produk }}" width="50">
+                                {% else %}
+                                    <div class="bg-light border rounded" style="width: 50px; height: 50px;"></div>
+                                {% endif %}
+                            </td>
+                            <td>{{ product.nama_produk }}</td>
+                            <td>{{ product.kategori.nama_kategori|default:"-" }}</td>
+                            <td>Rp {{ product.harga_produk|floatformat:0 }}</td>
+                            <td>
+                                {% if product.stok_produk == 0 %}
+                                    <span class="badge bg-danger">Out of Stock</span>
+                                {% elif product.stok_produk < 5 %}
+                                    <span class="badge bg-warning">{{ product.stok_produk }}</span>
+                                {% else %}
+                                    <span class="badge bg-success">{{ product.stok_produk }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'dashboard_admin:product_detail' product.pk %}" class="btn btn-sm btn-info" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'dashboard_admin:product_update' product.pk %}" class="btn btn-sm btn-warning" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'dashboard_admin:product_delete' product.pk %}" class="btn btn-sm btn-danger" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">No products found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Product pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if category_id %}&category={{ category_id }}{% endif %}">Previous</a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if category_id %}&category={{ category_id }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if category_id %}&category={{ category_id }}{% endif %}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}

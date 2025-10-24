@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db.models import Sum
 
 # Model Admin (menggantikan User bawaan Django untuk admin)
 class Admin(AbstractUser):
@@ -32,6 +33,35 @@ class Pelanggan(models.Model):
 
     def __str__(self):
         return str(self.nama_pelanggan)
+
+    @classmethod
+    def get_top_purchased_products(cls, pelanggan_id, limit=3):
+        """
+        Get the top purchased products for a customer
+        """
+        from django.db.models import Sum
+        from .models import Transaksi, DetailTransaksi, Produk
+        
+        # Get successful transactions for this customer
+        successful_transactions = Transaksi.objects.filter(
+            pelanggan_id=pelanggan_id,
+            status_transaksi__in=['DIBAYAR', 'DIKIRIM', 'SELESAI']
+        )
+        
+        # Get top products based on quantity purchased
+        top_products = DetailTransaksi.objects.filter(
+            transaksi__in=successful_transactions
+        ).values(
+            'produk'
+        ).annotate(
+            total_quantity=Sum('jumlah_produk')
+        ).order_by('-total_quantity')[:limit]
+        
+        # Extract product IDs
+        product_ids = [item['produk'] for item in top_products]
+        
+        # Return product objects
+        return Produk.objects.filter(id__in=product_ids)
 
 # Model Kategori
 class Kategori(models.Model):

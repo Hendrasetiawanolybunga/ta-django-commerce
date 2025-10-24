@@ -1,0 +1,64 @@
+{% extends 'dashboard_admin/base.html' %}
+
+{% block title %}Add Discount{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Add New Discount</h2>
+        <a href="{% url 'dashboard_admin:discount_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Discounts
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="pelanggan" class="form-label">Customer *</label>
+                            <select class="form-control" id="pelanggan" name="pelanggan" required>
+                                <option value="">Select Customer</option>
+                                {% for customer in customers %}
+                                    <option value="{{ customer.id }}">{{ customer.nama_pelanggan }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="produk" class="form-label">Product (Optional)</label>
+                            <select class="form-control" id="produk" name="produk">
+                                <option value="">General Discount</option>
+                                {% for product in products %}
+                                    <option value="{{ product.id }}">{{ product.nama_produk }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="persen_diskon" class="form-label">Discount Percentage *</label>
+                            <input type="number" class="form-control" id="persen_diskon" name="persen_diskon" min="1" max="100" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status *</label>
+                            <select class="form-control" id="status" name="status" required>
+                                <option value="aktif">Active</option>
+                                <option value="tidak_aktif">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="pesan" class="form-label">Message</label>
+                    <textarea class="form-control" id="pesan" name="pesan" rows="3"></textarea>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">Create Discount</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

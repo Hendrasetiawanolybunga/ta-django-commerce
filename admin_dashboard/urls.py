@@ -13,6 +13,7 @@ urlpatterns = [
     # URLs untuk pelanggan yang sudah login
     path('dashboard/', views.dashboard_pelanggan, name='dashboard_pelanggan'),
     path('produk/', views.produk_list, name='produk_list'),
+    path('produk_detail/<int:pk>/', views.produk_detail, name='produk_detail'),
     path('keranjang/', views.keranjang, name='keranjang'),
     path('keranjang/update/<int:produk_id>/', views.update_keranjang, name='update_keranjang'),  # New URL for updating cart
     path('tambah-ke-keranjang/<int:produk_id>/', views.tambah_ke_keranjang, name='tambah_ke_keranjang'),
@@ -25,10 +26,5 @@ urlpatterns = [
     path('notifikasi/', views.notifikasi, name='notifikasi'),     # URL untuk halaman Notifikasi
     path('akun/', views.akun, name='akun'),                       # URL untuk halaman Akun
     
-    # URLs untuk laporan
-    path('laporan/transaksi/', views.laporan_transaksi, name='laporan_transaksi'),
-    path('laporan/produk-terlaris/', views.laporan_produk_terlaris, name='laporan_produk_terlaris'),
-    
-    # URL for analytics dashboard
-    path('dashboard-analitik/', views.dashboard_analitik, name='dashboard_analitik'),
+    # Reporting URLs have been moved to the custom admin dashboard
 ]

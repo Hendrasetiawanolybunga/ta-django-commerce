@@ -8,13 +8,14 @@ class PelangganRegistrationForm(forms.ModelForm):
 
     class Meta:
         model = Pelanggan
-        fields = ['username', 'nama_pelanggan', 'alamat', 'tanggal_lahir', 'no_hp']
+        fields = ['username', 'nama_pelanggan', 'alamat', 'tanggal_lahir', 'no_hp', 'email']
         labels = {
             'username': 'Username',
             'nama_pelanggan': 'Nama Lengkap',
             'alamat': 'Alamat',
             'tanggal_lahir': 'Tanggal Lahir',
             'no_hp': 'Nomor HP',
+            'email': 'Email',
         }
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
@@ -22,15 +23,25 @@ class PelangganRegistrationForm(forms.ModelForm):
             'alamat': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'tanggal_lahir': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'no_hp': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'contoh@email.com'}),
         }
 
     def clean(self):
         cleaned_data = super().clean()
         password = cleaned_data.get('password')
         password_confirm = cleaned_data.get('password_confirm')
+        email = cleaned_data.get('email')
 
         if password and password_confirm and password != password_confirm:
             raise forms.ValidationError("Password dan konfirmasi password tidak cocok.")
+        
+        # Email validation
+        if email:
+            # Basic email format validation
+            import re
+            email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            if not re.match(email_regex, email):
+                raise forms.ValidationError("Format email tidak valid.")
         
         return cleaned_data
 
@@ -63,18 +74,20 @@ class PelangganLoginForm(forms.Form):
 class PelangganEditForm(forms.ModelForm):
     class Meta:
         model = Pelanggan
-        fields = ['nama_pelanggan', 'alamat', 'tanggal_lahir', 'no_hp']
+        fields = ['nama_pelanggan', 'alamat', 'tanggal_lahir', 'no_hp', 'email']
         labels = {
             'nama_pelanggan': 'Nama Lengkap',
             'alamat': 'Alamat',
             'tanggal_lahir': 'Tanggal Lahir',
             'no_hp': 'Nomor HP',
+            'email': 'Email',
         }
         widgets = {
             'nama_pelanggan': forms.TextInput(attrs={'class': 'form-control'}),
             'alamat': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'tanggal_lahir': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'no_hp': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'contoh@email.com'}),
         }
 
 class PembayaranForm(forms.Form):

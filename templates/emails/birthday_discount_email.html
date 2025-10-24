@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Selamat Ulang Tahun!</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #059212; text-align: center;">🎉 Selamat Ulang Tahun, {{ customer.nama_pelanggan }}! 🎉</h1>
+        
+        <p>Hai {{ customer.nama_pelanggan }},</p>
+        
+        <p>Selamat ulang tahun yang ke-istimewa! Kami dari UD. Barokah Jaya Beton ingin mengucapkan selamat ulang tahun dan berterima kasih atas dukungan Anda selama ini.</p>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            <h2 style="color: #059212; margin-top: 0;">🎁 Diskon Spesial 10% 🎁</h2>
+            <p style="font-size: 18px; margin-bottom: 0;">Nikmati diskon 10% untuk semua pembelanjaan hari ini!</p>
+            <p style="font-size: 16px; color: #666;">(Berlaku untuk 3 produk favorit Anda)</p>
+        </div>
+        
+        <p>Karena Anda adalah pelanggan setia kami dengan total belanja sebesar <strong>Rp {{ total_spending|floatformat:0|intcomma }}</strong>, Anda berhak mendapatkan diskon spesial ini.</p>
+        
+        <p>Jangan lewatkan kesempatan ini! Kunjungi toko kami dan belanja produk favorit Anda dengan diskon istimewa.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{ cta_url|default:'http://127.0.0.1:8000/produk/' }}" style="background-color: #059212; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Belanja Sekarang</a>
+        </div>
+        
+        <p>Terima kasih telah menjadi bagian dari keluarga Barokah Jaya Beton!</p>
+        
+        <p>Salam hangat,<br>
+        <strong>Tim UD. Barokah Jaya Beton</strong></p>
+        
+        <hr style="margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #666; text-align: center;">
+            Email ini dikirim secara otomatis. Mohon tidak membalas email ini.<br>
+            Jika Anda memiliki pertanyaan, silakan hubungi kami di +62 812-3897-6923
+        </p>
+    </div>
+</body>
+</html>
