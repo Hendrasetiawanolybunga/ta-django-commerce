@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}
+    Detail Produk - {{ produk.nama_produk }}
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-md-6">
+            <img src="{{ produk.foto_produk.url }}" class="img-fluid rounded product-image-detail" alt="{{ produk.nama_produk }}">
+        </div>
+        <div class="col-md-6">
+            <h2 class="mb-3">{{ produk.nama_produk }}</h2>
+            
+            {% if produk.kategori %}
+                <p><strong>Kategori:</strong> {{ produk.kategori.nama_kategori }}</p>
+            {% endif %}
+            
+            <p class="fw-bold" style="color: #059212; font-size: 1.5rem;">Rp {{ produk.harga_produk|intcomma }}</p>
+            <p class="text-muted">Stok: {{ produk.stok_produk|intcomma }}</p>
+            
+            <!-- Discount information -->
+            {% if produk.diskon_aktif %}
+            <div class="mb-3">
+                <span class="badge bg-danger fs-6">
+                    <i class="fas fa-tags me-1"></i>Diskon {{ produk.diskon_aktif.persen_diskon }}%
+                </span>
+            </div>
+            {% endif %}
+            
+            <hr>
+            
+            <h5>Deskripsi:</h5>
+            <p>{{ produk.deskripsi_produk }}</p>
+            
+            <hr>
+            
+            <!-- Add to cart form -->
+            <form action="{% url 'tambah_ke_keranjang' produk.id %}" method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="jumlah" class="form-label">Jumlah:</label>
+                    <input type="number" class="form-control" id="jumlah" name="jumlah" value="1" min="1" max="{{ produk.stok_produk }}">
+                </div>
+                <button type="submit" class="btn btn-custom">
+                    <i class="fas fa-cart-plus me-1"></i>Tambah ke Keranjang
+                </button>
+            </form>
+            
+            <form action="{% url 'checkout_langsung' produk.id %}" method="post" class="d-inline mt-2">
+                {% csrf_token %}
+                <input type="hidden" name="jumlah" value="1">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-bolt me-1"></i>Checkout Langsung
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-image-detail {
+        max-height: 500px;
+        object-fit: cover;
+    }
+</style>
+{% endblock %}

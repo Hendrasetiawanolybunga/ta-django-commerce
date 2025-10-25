@@ -254,11 +254,9 @@
                         <a class="nav-link position-relative" href="{% url 'keranjang' %}">
                             <i class="fas fa-cart-plus me-1"></i>Keranjang
                             <!-- Cart badge -->
-                            {% with cart_count=cart_item_count|default:0 %}
-                                {% if cart_count > 0 %}
-                                    <span id="cart-badge" class="badge bg-danger rounded-pill cart-badge">{{ cart_count }}</span>
-                                {% endif %}
-                            {% endwith %}
+                            {% if cart_item_count > 0 %}
+                                <span id="cart-badge" class="badge bg-danger rounded-pill cart-badge">{{ cart_item_count }}</span>
+                            {% endif %}
                         </a>
                     </li>
                 </ul>
@@ -269,11 +267,9 @@
                         <a class="nav-link position-relative" href="{% url 'notifikasi' %}">
                             <i class="fas fa-bell"></i>
                             <!-- Notification badge -->
-                            {% with notif_count=notifikasi_count|default:0 %}
-                                {% if notif_count > 0 %}
-                                    <span class="notification-badge">{{ notif_count }}</span>
-                                {% endif %}
-                            {% endwith %}
+                            {% if unseen_notifications_count > 0 %}
+                                <span class="notification-badge">{{ unseen_notifications_count }}</span>
+                            {% endif %}
                         </a>
                     </li>
                     {% endif %}
@@ -296,6 +292,11 @@
         </div>
     </nav>
 
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
+        <!-- Toast messages will be dynamically added here -->
+    </div>
+    
     <div class="container mt-4">
         {% block content %}
         {% endblock %}
@@ -340,20 +341,94 @@
                                 cartBadge.style.display = 'flex';
                             }
                             
-                            // Removed alert for better UX - only update cart badge silently
-                            // alert(data.message);
+                            // Show toast notification
+                            showToast(data.message, 'success');
                         } else {
                             // Show error message
-                            alert(data.message);
+                            showToast(data.message, 'danger');
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        alert('Terjadi kesalahan saat menambahkan ke keranjang.');
+                        showToast('Terjadi kesalahan saat menambahkan ke keranjang.', 'danger');
                     });
                 }
             });
+            
+            // Show toast notifications for Django messages
+            showDjangoMessages();
         });
+        
+        // Function to show toast notifications
+        function showToast(message, type = 'info') {
+            const toastContainer = document.querySelector('.toast-container');
+            
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            // Toast header
+            const toastHeader = document.createElement('div');
+            toastHeader.className = 'toast-header';
+            
+            const strong = document.createElement('strong');
+            strong.className = 'me-auto';
+            strong.textContent = 'Notifikasi';
+            
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn-close';
+            button.setAttribute('data-bs-dismiss', 'toast');
+            button.setAttribute('aria-label', 'Close');
+            
+            toastHeader.appendChild(strong);
+            toastHeader.appendChild(button);
+            
+            // Toast body
+            const toastBody = document.createElement('div');
+            toastBody.className = 'toast-body';
+            toastBody.textContent = message;
+            
+            // Add appropriate background color based on type
+            if (type === 'success') {
+                toast.classList.add('bg-success', 'text-white');
+            } else if (type === 'danger') {
+                toast.classList.add('bg-danger', 'text-white');
+            } else if (type === 'warning') {
+                toast.classList.add('bg-warning', 'text-dark');
+            } else {
+                toast.classList.add('bg-info', 'text-white');
+            }
+            
+            toast.appendChild(toastHeader);
+            toast.appendChild(toastBody);
+            
+            toastContainer.appendChild(toast);
+            
+            // Initialize and show toast
+            const bsToast = new bootstrap.Toast(toast, {
+                delay: 3000 // Auto hide after 3 seconds
+            });
+            bsToast.show();
+            
+            // Remove toast from DOM after it's hidden
+            toast.addEventListener('hidden.bs.toast', function () {
+                toast.remove();
+            });
+        }
+        
+        // Function to show Django messages as toasts
+        function showDjangoMessages() {
+            // Get Django messages (if any)
+            {% if messages %}
+                {% for message in messages %}
+                    showToast("{{ message }}", "{{ message.tags }}");
+                {% endfor %}
+            {% endif %}
+        }
     </script>
     
     {% block extra_js %}{% endblock %}

@@ -1,6 +1,6 @@
 {% extends 'dashboard_admin/base.html' %}
 
-{% block title %}Analytics{% endblock %}
+{% block title %}Analitik{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -14,18 +14,34 @@
 
 {% block content %}
 <div class="container-fluid">
-    <h2 class="mb-4">Analytics Dashboard</h2>
+    <h2 class="mb-4">Dasbor Analitik</h2>
     
     <!-- Revenue Chart -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Monthly Revenue</h5>
+                    <h5 class="mb-0">Pendapatan Bulanan</h5>
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
                         <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Best Selling Products Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">5 Produk Terlaris</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="bestSellingChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -37,7 +53,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Top 5 Best Selling Products</h5>
+                    <h5 class="mb-0">5 Produk Terlaris</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -58,7 +74,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="3" class="text-center">No products found</td>
+                                    <td colspan="3" class="text-center">Tidak ada produk ditemukan</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -89,7 +105,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="2" class="text-center">No customers found</td>
+                                    <td colspan="2" class="text-center">Tidak ada pelanggan ditemukan</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -118,7 +134,7 @@
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Total Revenue (Rp)',
+                    label: 'Total Pendapatan (Rp)',
                     data: data,
                     backgroundColor: 'rgba(5, 146, 18, 0.7)',
                     borderColor: 'rgba(5, 146, 18, 1)',
@@ -140,6 +156,61 @@
                 }
             }
         });
+        
+        // Best Selling Products Chart
+        var topProducts = {{ top_products|safe }};
+        
+        if (topProducts && topProducts.length > 0) {
+            var ctx2 = document.getElementById('bestSellingChart').getContext('2d');
+            
+            var productLabels = topProducts.map(item => item.produk__nama_produk);
+            var productQuantities = topProducts.map(item => item.total_quantity);
+            
+            // Generate colors for the chart
+            var backgroundColors = [
+                'rgba(5, 146, 18, 0.7)',
+                'rgba(9, 132, 227, 0.7)',
+                'rgba(255, 159, 67, 0.7)',
+                'rgba(153, 102, 255, 0.7)',
+                'rgba(255, 99, 132, 0.7)'
+            ];
+            
+            var borderColors = [
+                'rgba(5, 146, 18, 1)',
+                'rgba(9, 132, 227, 1)',
+                'rgba(255, 159, 67, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 99, 132, 1)'
+            ];
+            
+            var bestSellingChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: productLabels,
+                    datasets: [{
+                        label: 'Jumlah Terjual',
+                        data: productQuantities,
+                        backgroundColor: backgroundColors.slice(0, productQuantities.length),
+                        borderColor: borderColors.slice(0, productQuantities.length),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('id-ID');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
     });
 </script>
 {% endblock %}

@@ -10,6 +10,8 @@ from django.db import transaction as db_transaction
 from django.db.models import F
 from django.core.paginator import Paginator
 from django.core.exceptions import PermissionDenied
+from django.contrib.auth.hashers import make_password
+from django.apps import apps
 
 # ReportLab imports for PDF generation
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -54,46 +56,103 @@ def admin_required(view_func):
 # Dashboard Views
 @admin_required
 def dashboard(request):
-    # Get dashboard statistics
-    total_products = Produk.objects.count()
-    total_customers = Pelanggan.objects.count()
-    total_transactions = Transaksi.objects.count()
-    total_revenue = Transaksi.objects.filter(
-        status_transaksi__in=['DIBAYAR', 'DIKIRIM', 'SELESAI']
-    ).aggregate(total=Sum('total'))['total'] or 0
-    
-    # Calculate monthly revenue for the last 6 months
-    today = timezone.now()
-    monthly_revenue = []
-    
-    # Define status that count as paid transactions
-    PAID_STATUSES = ['DIBAYAR', 'DIKIRIM', 'SELESAI']
-    
-    for i in range(5, -1, -1):  # Last 6 months (including current)
-        start_date = (today - timedelta(days=30*i)).replace(day=1)
-        if i == 0:  # Current month
-            end_date = today
-        else:
-            # Last day of the month
-            next_month = (today - timedelta(days=30*(i-1))).replace(day=1)
-            end_date = next_month - timedelta(days=1)
-            
-        monthly_total = Transaksi.objects.filter(
-            status_transaksi__in=PAID_STATUSES,
-            tanggal__gte=start_date,
-            tanggal__lte=end_date
+    try:
+        # Get models from apps to avoid circular imports
+        Produk = apps.get_model('admin_dashboard', 'Produk')
+        Pelanggan = apps.get_model('admin_dashboard', 'Pelanggan')
+        Transaksi = apps.get_model('admin_dashboard', 'Transaksi')
+        DetailTransaksi = apps.get_model('admin_dashboard', 'DetailTransaksi')
+        
+        # Get dashboard statistics
+        total_products = Produk.objects.count()
+        total_customers = Pelanggan.objects.count()
+        total_transactions = Transaksi.objects.count()
+        total_revenue = Transaksi.objects.filter(
+            status_transaksi__in=['DIBAYAR', 'DIKIRIM', 'SELESAI']
         ).aggregate(total=Sum('total'))['total'] or 0
         
-        monthly_revenue.append({
-            'month': start_date.strftime('%B %Y'),
-            'total': float(monthly_total)
-        })
-    
-    # Get recent transactions
-    recent_transactions = Transaksi.objects.select_related('pelanggan').order_by('-tanggal')[:5]
-    
-    # Get low stock products
-    low_stock_products = Produk.objects.filter(stok_produk__lt=5).order_by('stok_produk')
+        # Calculate monthly revenue for the last 6 months
+        today = timezone.now()
+        monthly_revenue = []
+        
+        # Define status that count as paid transactions
+        PAID_STATUSES = ['DIBAYAR', 'DIKIRIM', 'SELESAI']
+        
+        for i in range(5, -1, -1):  # Last 6 months (including current)
+            start_date = (today - timedelta(days=30*i)).replace(day=1)
+            if i == 0:  # Current month
+                end_date = today
+            else:
+                # Last day of the month
+                next_month = (today - timedelta(days=30*(i-1))).replace(day=1)
+                end_date = next_month - timedelta(days=1)
+                
+            monthly_total = Transaksi.objects.filter(
+                status_transaksi__in=PAID_STATUSES,
+                tanggal__gte=start_date,
+                tanggal__lte=end_date
+            ).aggregate(total=Sum('total'))['total'] or 0
+            
+            monthly_revenue.append({
+                'month': start_date.strftime('%B %Y'),
+                'total': float(monthly_total)
+            })
+        
+        # Get recent transactions
+        recent_transactions = Transaksi.objects.select_related('pelanggan').order_by('-tanggal')[:5]
+        
+        # Get low stock products
+        low_stock_products = Produk.objects.filter(stok_produk__lt=5).order_by('stok_produk')
+        
+        # Get top 5 best selling products (by quantity)
+        PAID_STATUSES = ['DIBAYAR', 'DIKIRIM', 'SELESAI']
+        best_selling_products = DetailTransaksi.objects.filter(
+            transaksi__status_transaksi__in=PAID_STATUSES
+        ).values(
+            'produk__nama_produk'
+        ).annotate(
+            total_quantity=Sum('jumlah_produk'),
+            total_revenue=Sum('sub_total')
+        ).order_by('-total_quantity')[:5]
+        
+        # Get CRM counts
+        from datetime import date
+        today_date = timezone.now().date()
+        
+        # New customers today
+        new_customer_count = Pelanggan.objects.filter(
+            created_at__date=today_date
+        ).count()
+        
+        # Birthday customers today
+        birthday_customer_count = Pelanggan.objects.filter(
+            tanggal_lahir__month=today_date.month,
+            tanggal_lahir__day=today_date.day
+        ).count()
+        
+        # New transactions today (excluding completed)
+        new_transaction_count = Transaksi.objects.filter(
+            tanggal__date=today_date
+        ).exclude(status_transaksi='SELESAI').count()
+        
+    except Exception as e:
+        # Handle any errors and provide default values
+        total_products = 0
+        total_customers = 0
+        total_transactions = 0
+        total_revenue = 0
+        monthly_revenue = []
+        recent_transactions = []
+        low_stock_products = []
+        best_selling_products = []
+        new_customer_count = 0
+        birthday_customer_count = 0
+        new_transaction_count = 0
+        
+        # Log the error for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in dashboard view: {str(e)}")
     
     context = {
         'total_products': total_products,
@@ -103,11 +162,19 @@ def dashboard(request):
         'monthly_revenue': monthly_revenue,
         'recent_transactions': recent_transactions,
         'low_stock_products': low_stock_products,
+        'best_selling_products': best_selling_products,
+        'new_customer_count': new_customer_count,
+        'birthday_customer_count': birthday_customer_count,
+        'new_transaction_count': new_transaction_count,
     }
     return render(request, 'dashboard_admin/dashboard.html', context)
 
 @admin_required
 def analytics(request):
+    # Get models from apps to avoid circular imports
+    Transaksi = apps.get_model('admin_dashboard', 'Transaksi')
+    DetailTransaksi = apps.get_model('admin_dashboard', 'DetailTransaksi')
+    
     # Calculate monthly revenue for the last 6 months
     today = timezone.now()
     monthly_revenue = []
@@ -215,8 +282,10 @@ def product_create(request):
     else:
         form = ProdukForm()
     
+    categories = Kategori.objects.all()
     context = {
-        'form': form
+        'form': form,
+        'categories': categories
     }
     return render(request, 'dashboard_admin/products/create.html', context)
 
@@ -255,9 +324,11 @@ def product_update(request, pk):
     else:
         form = ProdukForm(instance=product)
     
+    categories = Kategori.objects.all()
     context = {
         'form': form,
-        'product': product
+        'product': product,
+        'categories': categories
     }
     return render(request, 'dashboard_admin/products/update.html', context)
 
@@ -399,8 +470,11 @@ def customer_create(request):
     if request.method == 'POST':
         form = PelangganForm(request.POST)
         if form.is_valid():
-            # Note: In a real app, you should hash the password
-            customer = form.save()
+            customer = form.save(commit=False)
+            # Hash the password before saving
+            if form.cleaned_data.get('password'):
+                customer.password = make_password(form.cleaned_data['password'])
+            customer.save()
             messages.success(request, f'Customer "{customer.nama_pelanggan}" created successfully.')
             return redirect('dashboard_admin:customer_list')
         else:
@@ -420,7 +494,11 @@ def customer_update(request, pk):
     if request.method == 'POST':
         form = PelangganForm(request.POST, instance=customer)
         if form.is_valid():
-            customer = form.save()
+            customer = form.save(commit=False)
+            # Hash the password if it's being updated
+            if form.cleaned_data.get('password'):
+                customer.password = make_password(form.cleaned_data['password'])
+            customer.save()
             messages.success(request, f'Customer "{customer.nama_pelanggan}" updated successfully.')
             return redirect('dashboard_admin:customer_list')
         else:
@@ -482,6 +560,68 @@ def transaction_list(request):
     return render(request, 'dashboard_admin/transactions/list.html', context)
 
 @admin_required
+def transaction_create(request):
+    from .forms import TransaksiForm, DetailTransaksiFormSet
+    
+    if request.method == 'POST':
+        form = TransaksiForm(request.POST)
+        formset = DetailTransaksiFormSet(request.POST)
+        
+        if form.is_valid() and formset.is_valid():
+            try:
+                with db_transaction.atomic():
+                    # Save the transaction
+                    transaction = form.save(commit=False)
+                    transaction.save()
+                    
+                    # Save the formset (detail transactions)
+                    formset.instance = transaction
+                    formset.save()
+                    
+                    # Calculate total for the transaction
+                    total = 0
+                    for detail_form in formset.cleaned_data:
+                        if detail_form and not detail_form.get('DELETE', False):
+                            produk = detail_form['produk']
+                            jumlah = detail_form['jumlah_produk']
+                            sub_total = produk.harga_produk * jumlah
+                            total += sub_total
+                            
+                            # Update stock
+                            produk.stok_produk -= jumlah
+                            produk.save()
+                    
+                    # Add shipping cost to total
+                    transaction.total = total + transaction.ongkir
+                    transaction.save()
+                    
+                    messages.success(request, f'Transaction #{transaction.id} created successfully.')
+                    return redirect('dashboard_admin:transaction_list')
+            except Exception as e:
+                messages.error(request, f'Error creating transaction: {str(e)}')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = TransaksiForm()
+        formset = DetailTransaksiFormSet()
+    
+    # Get all customers and products for the forms
+    customers = Pelanggan.objects.all()
+    products = Produk.objects.all()
+    
+    # Create empty form for JavaScript template
+    empty_formset = DetailTransaksiFormSet(instance=Transaksi())
+    
+    context = {
+        'form': form,
+        'formset': formset,
+        'empty_formset': empty_formset,
+        'customers': customers,
+        'products': products,
+    }
+    return render(request, 'dashboard_admin/transactions/create.html', context)
+
+@admin_required
 def transaction_detail(request, pk):
     transaction = get_object_or_404(Transaksi.objects.prefetch_related('detailtransaksi_set__produk'), pk=pk)
     context = {
@@ -491,45 +631,101 @@ def transaction_detail(request, pk):
 
 @admin_required
 def transaction_update(request, pk):
+    from .forms import TransaksiForm, DetailTransaksiFormSet
+    
     transaction = get_object_or_404(Transaksi, pk=pk)
     
     if request.method == 'POST':
-        old_status = transaction.status_transaksi
-        new_status = request.POST['status_transaksi']
-        ongkir = request.POST.get('ongkir', 0)
+        form = TransaksiForm(request.POST, instance=transaction)
+        formset = DetailTransaksiFormSet(request.POST, instance=transaction)
         
-        # Update transaction
-        transaction.status_transaksi = new_status
-        transaction.ongkir = ongkir
-        transaction.save()
+        # Check formset validity with custom logic for existing records
+        formset_valid = True
+        formset_errors = []
         
-        # Handle stock adjustments based on status changes
-        _handle_stock_adjustment(transaction, old_status, new_status, request)
+        if formset.is_valid():
+            # For existing records, we allow empty fields if the form hasn't been changed
+            for i, form_detail in enumerate(formset):
+                # Skip validation for existing forms that haven't been changed
+                if form_detail.instance.pk and not form_detail.has_changed():
+                    continue
+                # For new forms or modified existing forms, validate required fields
+                elif form_detail.has_changed() or not form_detail.instance.pk:
+                    produk = form_detail.cleaned_data.get('produk')
+                    jumlah_produk = form_detail.cleaned_data.get('jumlah_produk')
+                    if not produk or not jumlah_produk or jumlah_produk <= 0:
+                        formset_valid = False
+                        formset_errors.append(f"Form {i+1}: Produk dan jumlah harus diisi dengan benar.")
+        else:
+            formset_valid = False
+            formset_errors = formset.errors
         
-        # Send notification to customer if status changed to SELESAI
-        if new_status == 'SELESAI' and old_status != 'SELESAI':
-            from django.urls import reverse
-            detail_url = reverse('detail_pesanan', args=[transaction.pk])
-            _create_notification(
-                transaction.pelanggan,
-                "Pesanan Selesai",
-                f"Pesanan Anda dengan ID {transaction.id} telah SELESAI. <a href='{detail_url}' class='alert-link'>Beri Feedback</a>"
-            )
-        
-        # Send notification if shipping cost changed
-        if str(ongkir) != str(transaction.ongkir) and old_status != new_status:
-            _create_notification(
-                transaction.pelanggan,
-                "Ongkos Kirim Diperbarui",
-                f"Ongkos kirim untuk pesanan Anda dengan ID #{transaction.id} telah diperbarui. "
-                f"Jumlah Ongkir yang harus Anda bayarkan saat produk diantar adalah Rp {transaction.ongkir:,.0f}."
-            )
-        
-        messages.success(request, f'Transaction #{transaction.id} updated successfully.')
-        return redirect('dashboard_admin:transaction_list')
+        if form.is_valid() and formset_valid:
+            try:
+                with db_transaction.atomic():
+                    # Save the transaction
+                    transaction = form.save()
+                    
+                    # Save the formset (detail transactions)
+                    formset.save()
+                    
+                    # Calculate total for the transaction
+                    total = 0
+                    for detail in transaction.detailtransaksi_set.all():
+                        sub_total = detail.produk.harga_produk * detail.jumlah_produk
+                        detail.sub_total = sub_total
+                        detail.save()
+                        total += sub_total
+                    
+                    # Add shipping cost to total
+                    transaction.total = total + transaction.ongkir
+                    transaction.save()
+                    
+                    # Handle stock adjustments based on status changes
+                    old_status = getattr(transaction, '_old_status', transaction.status_transaksi)
+                    _handle_stock_adjustment(transaction, old_status, transaction.status_transaksi, request)
+                    
+                    # Send notification to customer if status changed to SELESAI
+                    if transaction.status_transaksi == 'SELESAI' and old_status != 'SELESAI':
+                        from django.urls import reverse
+                        detail_url = reverse('detail_pesanan', args=[transaction.pk])
+                        _create_notification(
+                            transaction.pelanggan,
+                            "Pesanan Selesai",
+                            f"Pesanan Anda dengan ID {transaction.id} telah SELESAI. <a href='{detail_url}' class='alert-link'>Beri Feedback</a>"
+                        )
+                    
+                    messages.success(request, f'Transaction #{transaction.id} updated successfully.')
+                    return redirect('dashboard_admin:transaction_list')
+            except Exception as e:
+                messages.error(request, f'Error updating transaction: {str(e)}')
+        else:
+            # Debug form errors
+            if not form.is_valid():
+                messages.error(request, f'Transaction form errors: {form.errors}')
+            if not formset_valid:
+                for error in formset_errors:
+                    messages.error(request, f'Transaction detail formset error: {error}')
+    else:
+        form = TransaksiForm(instance=transaction)
+        formset = DetailTransaksiFormSet(instance=transaction)
+        # Store old status for stock adjustment
+        transaction._old_status = transaction.status_transaksi
+    
+    # Get all customers and products for the forms
+    customers = Pelanggan.objects.all()
+    products = Produk.objects.all()
+    
+    # Create empty form for JavaScript template
+    empty_formset = DetailTransaksiFormSet(instance=transaction)
     
     context = {
-        'transaction': transaction
+        'form': form,
+        'formset': formset,
+        'empty_formset': empty_formset,
+        'transaction': transaction,
+        'customers': customers,
+        'products': products
     }
     return render(request, 'dashboard_admin/transactions/update.html', context)
 
@@ -561,8 +757,12 @@ def discount_create(request):
     else:
         form = DiskonForm()
     
+    customers = Pelanggan.objects.all()
+    products = Produk.objects.all()
     context = {
-        'form': form
+        'form': form,
+        'customers': customers,
+        'products': products
     }
     return render(request, 'dashboard_admin/discounts/create.html', context)
 
@@ -581,9 +781,13 @@ def discount_update(request, pk):
     else:
         form = DiskonForm(instance=discount)
     
+    customers = Pelanggan.objects.all()
+    products = Produk.objects.all()
     context = {
         'form': form,
-        'discount': discount
+        'discount': discount,
+        'customers': customers,
+        'products': products
     }
     return render(request, 'dashboard_admin/discounts/update.html', context)
 

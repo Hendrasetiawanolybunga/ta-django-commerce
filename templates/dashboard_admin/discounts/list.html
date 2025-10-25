@@ -23,7 +23,7 @@
                             <th>Produk</th>
                             <th>Diskon %</th>
                             <th>Status</th>
-                            <th>Pesan</th>
+                       
                             <th>Aksi</th>
                         </tr>
                     </thead>
@@ -41,7 +41,7 @@
                                     <span class="badge bg-secondary">Tidak Aktif</span>
                                 {% endif %}
                             </td>
-                            <td>{{ discount.pesan|truncatewords:5 }}</td>
+                          
                             <td>
                                 <a href="{% url 'dashboard_admin:discount_update' discount.pk %}" class="btn btn-sm btn-warning" title="Edit">
                                     <i class="fas fa-edit"></i>
@@ -53,7 +53,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center">No discounts found</td>
+                            <td colspan="7" class="text-center">Tidak ada diskon ditemukan</td>
                         </tr>
                         {% endfor %}
                     </tbody>

@@ -305,171 +305,35 @@ def produk_detail(request, pk):
 @login_required_pelanggan
 def keranjang(request):
     keranjang_belanja = request.session.get('keranjang', {})
-    produk_di_keranjang = []
-    total_belanja = 0
-    total_sebelum_diskon = 0
-    total_diskon = 0
 
     pelanggan_id = request.session.get('pelanggan_id')
     
     # Get notification count
     notifikasi_count = get_notification_count(pelanggan_id)
     
-    # Get the customer object to check birthday and total spending
+    # Get the customer object
     pelanggan = get_object_or_404(Pelanggan, pk=pelanggan_id)
     
-    # Check if customer qualifies for birthday discount
-    # Kondisi A: Tanggal Lahir == Tanggal Hari Ini
-    from datetime import date
-    today = date.today()
-    is_birthday = (
-        pelanggan.tanggal_lahir and 
-        pelanggan.tanggal_lahir.month == today.month and 
-        pelanggan.tanggal_lahir.day == today.day
-    )
-    
-    # Kondisi B: Total semua Transaksi dengan status DIBAYAR/DIKIRIM/SELESAI pelanggan tersebut ≥ Rp 5.000.000
-    from django.db.models import Sum
-    total_spending = Transaksi.objects.filter(
-        pelanggan=pelanggan,
-        status_transaksi__in=['DIBAYAR', 'DIKIRIM', 'SELESAI']
-    ).aggregate(
-        total_belanja=Sum('total')
-    )['total_belanja'] or 0
-    
-    is_loyal = total_spending >= 5000000
-    
-    # Check for P2-B: Loyalitas Instan (Birthday + Cart Total >= 5,000,000)
-    # Calculate total cart value before discounts for P2-B check
-    total_cart_value = 0
-    for produk_id_str, jumlah in keranjang_belanja.items():
-        try:
-            produk_id = int(produk_id_str)
-            produk = get_object_or_404(Produk, pk=produk_id)
-            # Ensure all calculations use Decimal type
-            harga_produk_decimal = Decimal(str(produk.harga_produk))
-            jumlah_decimal = Decimal(str(jumlah))
-            total_cart_value += harga_produk_decimal * jumlah_decimal
-        except Exception:
-            pass  # Skip invalid items
-    
-    # P2-B eligibility: Birthday + Cart Total >= 5,000,000 (regardless of loyalty status)
-    qualifies_for_p2b = is_birthday and total_cart_value >= Decimal('5000000')
-    
-    # Check for birthday discount (24-hour loyal discount)
-    has_active_birthday_discount = False
-    if pelanggan.birthday_discount_end_time and pelanggan.birthday_discount_end_time > timezone.now():
-        has_active_birthday_discount = True
-    
-    # For non-loyal birthday customers, check for conditional discount
-    qualifies_for_conditional_discount = False
-    conditional_discount_amount = 0
-    
-    if is_birthday and not pelanggan.is_loyal:
-        # Calculate remaining amount needed for loyalty
-        remaining_for_loyalty = Decimal('5000000') - pelanggan.total_spending
-        
-        # If cart total >= remaining amount, qualify for conditional discount
-        if total_cart_value >= remaining_for_loyalty:
-            qualifies_for_conditional_discount = True
-            conditional_discount_amount = remaining_for_loyalty
-    
-    # Apply discounts to products
-    for produk_id, jumlah in keranjang_belanja.items():
-        produk = get_object_or_404(Produk, pk=produk_id)
-        harga_asli = produk.harga_produk * jumlah
-        sub_total = harga_asli
-        
-        # Check for discounts
-        diskon = None
-        potongan_harga = 0
-        harga_setelah_diskon = sub_total
-        
-        # Check for product-specific discount first
-        diskon_produk = DiskonPelanggan.objects.filter(
-            pelanggan_id=pelanggan_id,
-            produk=produk,
-            status='aktif'
-        ).first()
-        
-        # If no product-specific discount, check for general discount
-        if not diskon_produk:
-            diskon_produk = DiskonPelanggan.objects.filter(
-                pelanggan_id=pelanggan_id,
-                produk__isnull=True,  # General discount
-                status='aktif'
-            ).first()
-        
-        # Apply birthday discount if active
-        if has_active_birthday_discount:
-            diskon = type('DiskonPelanggan', (), {
-                'persen_diskon': 10,
-                'pesan': 'Diskon Ulang Tahun 24 Jam'
-            })()
-            # Ensure all calculations use Decimal type
-            sub_total_decimal = Decimal(str(sub_total))
-            persen_diskon_decimal = Decimal('10')
-            potongan_harga = int(sub_total_decimal * (persen_diskon_decimal / 100))
-            harga_setelah_diskon = sub_total_decimal - Decimal(str(potongan_harga))
-            sub_total = harga_setelah_diskon
-        # Apply conditional discount for non-loyal birthday customers
-        elif qualifies_for_conditional_discount and not diskon_produk:
-            diskon = type('DiskonPelanggan', (), {
-                'persen_diskon': 10,
-                'pesan': 'Diskon Ulang Tahun Bersyarat'
-            })()
-            # Ensure all calculations use Decimal type
-            sub_total_decimal = Decimal(str(sub_total))
-            persen_diskon_decimal = Decimal('10')
-            potongan_harga = int(sub_total_decimal * (persen_diskon_decimal / 100))
-            harga_setelah_diskon = sub_total_decimal - Decimal(str(potongan_harga))
-            sub_total = harga_setelah_diskon
-        # Apply regular discount if available and no birthday discount applied
-        elif diskon_produk:
-            diskon = diskon_produk
-            # Ensure all calculations use Decimal type
-            sub_total_decimal = Decimal(str(sub_total))
-            persen_diskon_decimal = Decimal(str(diskon.persen_diskon))
-            potongan_harga = int(sub_total_decimal * (persen_diskon_decimal / 100))
-            harga_setelah_diskon = sub_total_decimal - Decimal(str(potongan_harga))
-            sub_total = harga_setelah_diskon
-        
-        total_belanja += sub_total
-        total_sebelum_diskon += harga_asli
-        total_diskon += potongan_harga
-        
-        produk_di_keranjang.append({
-            'produk': produk,
-            'jumlah': jumlah,
-            'sub_total': sub_total,
-            'harga_asli': harga_asli,
-            'diskon': diskon,
-            'potongan_harga': potongan_harga,
-            'harga_setelah_diskon': harga_setelah_diskon
-        })
-
-    # Calculate birthday discount amount for display
-    birthday_discount_amount = 0
-    if has_active_birthday_discount or qualifies_for_conditional_discount:
-        # Calculate 10% of total cart value
-        birthday_discount_amount = int(Decimal('0.10') * Decimal(str(total_sebelum_diskon)))
+    # Calculate cart totals using the helper function
+    from .utils import calculate_cart_totals
+    cart_totals = calculate_cart_totals(pelanggan, keranjang_belanja)
     
     context = {
-        'produk_di_keranjang': produk_di_keranjang,
-        'total_belanja': total_belanja,
-        'total_sebelum_diskon': total_sebelum_diskon,
-        'total_diskon': total_diskon,
-        'total_setelah_diskon': total_sebelum_diskon - total_diskon,
+        'produk_di_keranjang': cart_totals['produk_di_keranjang'],
+        'total_belanja': cart_totals['total_belanja'],
+        'total_sebelum_diskon': cart_totals['total_sebelum_diskon'],
+        'total_diskon': cart_totals['total_diskon'],
+        'total_setelah_diskon': cart_totals['total_setelah_diskon'],
         'notifikasi_count': notifikasi_count,
-        'is_birthday': is_birthday,
-        'is_loyal': is_loyal,
-        'total_spending': total_spending,
-        'qualifies_for_p2b': qualifies_for_p2b,  # For showing P2-B eligibility in cart
-        'total_cart_value': total_cart_value,  # For showing cart value in cart
-        'has_active_birthday_discount': has_active_birthday_discount,
-        'qualifies_for_conditional_discount': qualifies_for_conditional_discount,
-        'conditional_discount_amount': conditional_discount_amount,
-        'birthday_discount_amount': birthday_discount_amount
+        'is_birthday': cart_totals['is_birthday'],
+        'is_loyal': cart_totals['is_loyal'],
+        'total_spending': cart_totals['total_spending'],
+        'qualifies_for_p2b': cart_totals['qualifies_for_p2b'],
+        'total_cart_value': cart_totals['total_cart_value'],
+        'has_active_birthday_discount': cart_totals['has_active_birthday_discount'],
+        'qualifies_for_conditional_discount': cart_totals['qualifies_for_conditional_discount'],
+        'conditional_discount_amount': cart_totals['conditional_discount_amount'],
+        'birthday_discount_amount': cart_totals['birthday_discount_amount']
     }
     return render(request, 'keranjang.html', context)
 
@@ -614,10 +478,21 @@ def checkout(request):
         messages.error(request, 'Keranjang belanja Anda kosong, tidak dapat melakukan checkout.')
         return redirect('produk_list')
 
-    # Store cart data in session for later use in payment processing
+    # Get the customer object
+    pelanggan = get_object_or_404(Pelanggan, pk=pelanggan_id)
+    
+    # Calculate cart totals using the helper function
+    from .utils import calculate_cart_totals
+    cart_totals = calculate_cart_totals(pelanggan, keranjang_belanja)
+    
+    # Store cart data and discount information in session for later use in payment processing
     request.session['checkout_data'] = {
         'keranjang_belanja': keranjang_belanja,
-        'timestamp': timezone.now().isoformat()
+        'timestamp': timezone.now().isoformat(),
+        'total_diskon': int(cart_totals['total_diskon']),
+        'total_sebelum_diskon': int(cart_totals['total_sebelum_diskon']),
+        'total_setelah_diskon': int(cart_totals['total_setelah_diskon']),
+        'keterangan_diskon': cart_totals['keterangan_diskon']
     }
     
     # Redirect directly to payment page instead of showing modal
@@ -679,13 +554,49 @@ def proses_pembayaran(request):
                     if not alamat_pengiriman:
                         alamat_pengiriman = pelanggan.alamat
                     
+                    # Get discount data from session
+                    total_diskon = checkout_data.get('total_diskon', 0)
+                    total_sebelum_diskon = checkout_data.get('total_sebelum_diskon', 0)
+                    keterangan_diskon = ""
+                    
+                    # Determine discount description
+                    if total_diskon > 0:
+                        # Check if customer qualifies for birthday discount
+                        from datetime import date
+                        today = date.today()
+                        is_birthday = (
+                            pelanggan.tanggal_lahir and 
+                            pelanggan.tanggal_lahir.month == today.month and 
+                            pelanggan.tanggal_lahir.day == today.day
+                        )
+                        
+                        if is_birthday:
+                            # Check loyalty status
+                            total_spending = Transaksi.objects.filter(
+                                pelanggan=pelanggan,
+                                status_transaksi__in=['DIBAYAR', 'DIKIRIM', 'SELESAI']
+                            ).aggregate(
+                                total_belanja=Sum('total')
+                            )['total_belanja'] or 0
+                            
+                            is_loyal = total_spending >= 5000000
+                            
+                            if is_loyal:
+                                keterangan_diskon = "Diskon Ulang Tahun Permanen (10%)"
+                            else:
+                                keterangan_diskon = "Diskon Ulang Tahun Instan (10%)"
+                        else:
+                            keterangan_diskon = "Diskon Reguler"
+                    
                     transaksi = Transaksi.objects.create(
                         pelanggan=pelanggan,
                         tanggal=timezone.now(),
                         total=0,
                         bukti_bayar=request.FILES.get('bukti_bayar'),
                         status_transaksi='DIPROSES',
-                        alamat_pengiriman=alamat_pengiriman
+                        alamat_pengiriman=alamat_pengiriman,
+                        total_diskon=total_diskon,  # Store discount data
+                        keterangan_diskon=keterangan_diskon  # Store discount description
                     )
                     
                     # SET WAKTU BATAS JIKA BELUM ADA
@@ -898,7 +809,7 @@ def proses_pembayaran(request):
         if not diskon_produk:
             diskon_produk = DiskonPelanggan.objects.filter(
                 pelanggan_id=pelanggan_id,
-                produk__isnull=True,  # General discount
+                produk__isnull=True,  # General discount (applies to all products)
                 status='aktif'
             ).first()
         

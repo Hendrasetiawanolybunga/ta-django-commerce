@@ -19,7 +19,8 @@
                     <label for="nama_kategori" class="form-label">Category Name</label>
                     <input type="text" class="form-control" id="nama_kategori" name="nama_kategori" required>
                 </div>
-                <div class="d-grid">
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% url 'dashboard_admin:category_list' %}" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-primary">Create Category</button>
                 </div>
             </form>

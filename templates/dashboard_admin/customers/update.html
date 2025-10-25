@@ -41,7 +41,8 @@
                     <label for="email" class="form-label">Email</label>
                     <input type="email" class="form-control" id="email" name="email" value="{{ customer.email|default:'' }}">
                 </div>
-                <div class="d-grid">
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% url 'dashboard_admin:customer_list' %}" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-primary">Update Customer</button>
                 </div>
             </form>

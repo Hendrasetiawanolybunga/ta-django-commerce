@@ -136,6 +136,17 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
+                                        <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-envelope"></i>
+                                            </span>
+                                            {{ form.email }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
                                         <label for="{{ form.no_hp.id_for_label }}" class="form-label">Nomor HP</label>
                                         <div class="input-group">
                                             <span class="input-group-text">
@@ -145,6 +156,9 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                            
+                            <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="{{ form.tanggal_lahir.id_for_label }}" class="form-label">Tanggal Lahir</label>

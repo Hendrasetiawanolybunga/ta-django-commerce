@@ -12,9 +12,18 @@
                    {% if customer %}value="{{ customer.nama_pelanggan }}"{% endif %} required>
         </div>
         <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control" id="username" name="username" 
+                   {% if customer %}value="{{ customer.username }}"{% endif %} required>
+        </div>
+        <div class="mb-3">
             <label for="email" class="form-label">Email</label>
             <input type="email" class="form-control" id="email" name="email" 
-                   {% if customer %}value="{{ customer.email|default:'' }}"{% endif %}>
+                   {% if customer %}value="{{ customer.email|default:'' }}"{% endif %} required>
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Password {% if customer %}(Leave blank to keep current){% endif %}</label>
+            <input type="password" class="form-control" id="password" name="password">
         </div>
         <div class="mb-3">
             <label for="no_hp" class="form-label">Phone Number</label>

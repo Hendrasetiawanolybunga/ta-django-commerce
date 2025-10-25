@@ -25,7 +25,9 @@ class Pelanggan(models.Model):
     username = models.CharField(max_length=150, unique=True, verbose_name="Username")
     password = models.CharField(max_length=128, verbose_name="Password") # Django akan menangani hash password
     # Tambahan pada Pelanggan Model
-    email = models.EmailField(max_length=254, unique=True, null=True, blank=True)
+    email = models.EmailField(max_length=254, unique=True, null=False, blank=False, default='')
+    # Add created_at field to track when customers are created
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Tanggal Dibuat", null=True)
 
     class Meta:
         verbose_name_plural = "Pelanggan"
@@ -33,6 +35,26 @@ class Pelanggan(models.Model):
 
     def __str__(self):
         return str(self.nama_pelanggan)
+    
+    def total_spending(self):
+        from django.db.models import Sum
+        from django.apps import apps
+        
+        # Get model to avoid circular imports
+        Transaksi = apps.get_model('admin_dashboard', 'Transaksi')
+        
+        successful_transactions = Transaksi.objects.filter(
+            pelanggan=self,
+            status_transaksi__in=['DIBAYAR', 'DIKIRIM', 'SELESAI']
+        )
+        total = successful_transactions.aggregate(
+            total_belanja=Sum('total')
+        )['total_belanja'] or 0
+        return total
+    
+    @property
+    def is_loyal(self):
+        return self.total_spending() >= 5000000
 
     @classmethod
     def get_top_purchased_products(cls, pelanggan_id, limit=3):
@@ -40,7 +62,12 @@ class Pelanggan(models.Model):
         Get the top purchased products for a customer
         """
         from django.db.models import Sum
-        from .models import Transaksi, DetailTransaksi, Produk
+        from django.apps import apps
+        
+        # Get models to avoid circular imports
+        Transaksi = apps.get_model('admin_dashboard', 'Transaksi')
+        DetailTransaksi = apps.get_model('admin_dashboard', 'DetailTransaksi')
+        Produk = apps.get_model('admin_dashboard', 'Produk')
         
         # Get successful transactions for this customer
         successful_transactions = Transaksi.objects.filter(
@@ -121,6 +148,10 @@ class Transaksi(models.Model):
     # New fields for payment deadline feature
     waktu_checkout = models.DateTimeField(null=True, blank=True)
     batas_waktu_bayar = models.DateTimeField(null=True, blank=True)
+    
+    # Fields for discount data integrity (NEW)
+    total_diskon = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    keterangan_diskon = models.TextField(blank=True, null=True)
 
     class Meta:
         verbose_name_plural = "Transaksi"
@@ -164,6 +195,7 @@ class DiskonPelanggan(models.Model):
     )
     pesan = models.TextField(verbose_name="Pesan", null=True, blank=True)
     tanggal_dibuat = models.DateTimeField(auto_now_add=True, verbose_name="Tanggal Dibuat")
+    end_time = models.DateTimeField(null=True, blank=True, verbose_name="Waktu Berakhir Diskon")
 
     class Meta:
         verbose_name_plural = "Diskon Pelanggan"
@@ -172,13 +204,19 @@ class DiskonPelanggan(models.Model):
     def __str__(self):
         pelanggan_nama = getattr(self.pelanggan, 'nama_pelanggan', 'Pelanggan')
         return f"Diskon {self.persen_diskon}% untuk {pelanggan_nama}"
+    
+    def is_active(self):
+        from django.utils import timezone
+        if self.status == 'aktif' and (not self.end_time or self.end_time > timezone.now()):
+            return True
+        return False
 
 # Model Notifikasi
 class Notifikasi(models.Model):
     pelanggan = models.ForeignKey(Pelanggan, on_delete=models.CASCADE, verbose_name="Pelanggan")
     tipe_pesan = models.CharField(max_length=50, verbose_name="Tipe Pesan")
     isi_pesan = models.TextField(verbose_name="Isi Pesan")
-    is_read = models.BooleanField(default=False, verbose_name="Sudah Dibaca")
+    is_read = models.BooleanField(default=False, verbose_name="Sudah Dibaca")  # type: ignore
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Waktu Dibuat")
 
     class Meta:

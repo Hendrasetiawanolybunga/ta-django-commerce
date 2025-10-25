@@ -8,6 +8,8 @@ from django.contrib import messages
 from django.db import transaction as db_transaction
 from django import forms
 from django.core.exceptions import ValidationError
+from django.utils import timezone
+from datetime import timedelta
 
 from .models import Admin, Pelanggan, Produk, Transaksi, DetailTransaksi, DiskonPelanggan, Notifikasi, Kategori
 
@@ -155,6 +157,9 @@ class PelangganAdmin(BaseModelAdmin):
                 )
                 continue
             
+            # Calculate end_time (24 hours from now)
+            end_time = timezone.now() + timedelta(hours=24)
+            
             # Create/update discount for each top product
             for product in top_products:
                 diskon, created = DiskonPelanggan.objects.get_or_create(
@@ -163,7 +168,8 @@ class PelangganAdmin(BaseModelAdmin):
                     defaults={
                         'persen_diskon': 10,
                         'status': 'aktif',
-                        'pesan': f'Diskon ulang tahun 10% untuk produk favorit {product.nama_produk}'
+                        'pesan': f'Diskon ulang tahun 10% untuk produk favorit {product.nama_produk}',
+                        'end_time': end_time  # Set end_time to 24 hours from now
                     }
                 )
                 
@@ -172,6 +178,7 @@ class PelangganAdmin(BaseModelAdmin):
                     diskon.persen_diskon = 10
                     diskon.status = 'aktif'
                     diskon.pesan = f'Diskon ulang tahun 10% diperbarui untuk produk favorit {product.nama_produk}'
+                    diskon.end_time = end_time  # Update end_time to 24 hours from now
                     diskon.save()
             
             success_count += 1
@@ -274,6 +281,9 @@ class PelangganAdmin(BaseModelAdmin):
         # messages.info(request, f"Is birthday: {is_ultah}")
         
         if is_loyal and is_ultah:
+            # Calculate end_time (24 hours from now)
+            end_time = timezone.now() + timedelta(hours=24)
+            
             # Create or update discount for the customer
             diskon, created = DiskonPelanggan.objects.get_or_create(
                 pelanggan=pelanggan,
@@ -281,7 +291,8 @@ class PelangganAdmin(BaseModelAdmin):
                 defaults={
                     'persen_diskon': 10,  # 10% discount
                     'status': 'aktif',
-                    'pesan': f'Diskon ulang tahun untuk pelanggan loyal {pelanggan.nama_pelanggan}'
+                    'pesan': f'Diskon ulang tahun untuk pelanggan loyal {pelanggan.nama_pelanggan}',
+                    'end_time': end_time  # Set end_time to 24 hours from now
                 }
             )
             
@@ -290,6 +301,7 @@ class PelangganAdmin(BaseModelAdmin):
                 diskon.persen_diskon = 10
                 diskon.status = 'aktif'
                 diskon.pesan = f'Diskon ulang tahun diperbarui untuk pelanggan loyal {pelanggan.nama_pelanggan}'
+                diskon.end_time = end_time  # Update end_time to 24 hours from now
                 diskon.save()
             
             messages.success(request, f"Diskon 10% berhasil diterapkan untuk {pelanggan.nama_pelanggan}.")

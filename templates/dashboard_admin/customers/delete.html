@@ -1,0 +1,66 @@
+{% extends 'dashboard_admin/base.html' %}
+
+{% block title %}Hapus Pelanggan{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Konfirmasi Hapus Pelanggan</h2>
+    
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Hapus Pelanggan</h5>
+        </div>
+        <div class="card-body">
+            <p>Apakah Anda yakin ingin menghapus pelanggan berikut?</p>
+            
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <strong>Nama Pelanggan:</strong>
+                </div>
+                <div class="col-md-9">
+                    {{ customer.nama_pelanggan }}
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <strong>Username:</strong>
+                </div>
+                <div class="col-md-9">
+                    {{ customer.username }}
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <strong>Email:</strong>
+                </div>
+                <div class="col-md-9">
+                    {{ customer.email }}
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <strong>Tanggal Lahir:</strong>
+                </div>
+                <div class="col-md-9">
+                    {{ customer.tanggal_lahir|date:"d M Y" }}
+                </div>
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash-alt me-1"></i>Ya, Hapus
+                    </button>
+                    <a href="{% url 'dashboard_admin:customer_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i>Batal
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

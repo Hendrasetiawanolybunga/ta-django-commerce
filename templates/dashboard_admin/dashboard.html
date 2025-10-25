@@ -15,7 +15,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <h2 class="mb-4">Dashboard Overview</h2>
+    <h2 class="mb-4">Ikhtisar Dasbor</h2>
     
     <!-- Section 1: Stats Cards -->
     <div class="row mb-4">
@@ -25,7 +25,7 @@
                     <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
                         <i class="fas fa-boxes text-success" style="font-size: 28px;"></i>
                     </div>
-                    <h5 class="card-title text-muted mb-1">Total Products</h5>
+                    <h5 class="card-title text-muted mb-1">Total Produk</h5>
                     <p class="card-text fw-bold mb-0" style="font-size: 2rem; color: #059212;">{{ total_products }}</p>
                 </div>
             </div>
@@ -36,7 +36,7 @@
                     <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
                         <i class="fas fa-users text-primary" style="font-size: 28px;"></i>
                     </div>
-                    <h5 class="card-title text-muted mb-1">Total Customers</h5>
+                    <h5 class="card-title text-muted mb-1">Total Pelanggan</h5>
                     <p class="card-text fw-bold mb-0" style="font-size: 2rem; color: #059212;">{{ total_customers }}</p>
                 </div>
             </div>
@@ -47,7 +47,7 @@
                     <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
                         <i class="fas fa-shopping-cart text-info" style="font-size: 28px;"></i>
                     </div>
-                    <h5 class="card-title text-muted mb-1">Total Transactions</h5>
+                    <h5 class="card-title text-muted mb-1">Total Transaksi</h5>
                     <p class="card-text fw-bold mb-0" style="font-size: 2rem; color: #059212;">{{ total_transactions }}</p>
                 </div>
             </div>
@@ -58,7 +58,7 @@
                     <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
                         <i class="fas fa-wallet text-warning" style="font-size: 28px;"></i>
                     </div>
-                    <h5 class="card-title text-muted mb-1">Total Revenue</h5>
+                    <h5 class="card-title text-muted mb-1">Total Pendapatan</h5>
                     <p class="card-text fw-bold mb-0" style="font-size: 1.5rem; color: #059212;">Rp {{ total_revenue|floatformat:0|intcomma }}</p>
                 </div>
             </div>
@@ -70,20 +70,20 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Analytics Overview</h5>
+                    <h5 class="mb-0">Ikhtisar Analitik</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6 mb-4">
-                            <h6>Monthly Revenue</h6>
+                            <h6>Pendapatan Bulanan</h6>
                             <div class="chart-container">
                                 <canvas id="revenueChart"></canvas>
                             </div>
                         </div>
                         <div class="col-md-6 mb-4">
-                            <h6>Product Category Distribution</h6>
+                            <h6>Produk Terlaris</h6>
                             <div class="chart-container">
-                                <canvas id="categoryChart"></canvas>
+                                <canvas id="bestSellingChart"></canvas>
                             </div>
                         </div>
                     </div>
@@ -97,7 +97,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Recent Transactions</h5>
+                    <h5 class="mb-0">Transaksi Terbaru</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -124,7 +124,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="5" class="text-center">No transactions found</td>
+                                    <td colspan="5" class="text-center">Tidak ada transaksi ditemukan</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -136,7 +136,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Low Stock Products</h5>
+                    <h5 class="mb-0">Produk Stok Rendah</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -157,7 +157,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="3" class="text-center">No low stock products found</td>
+                                    <td colspan="3" class="text-center">Tidak ada produk stok rendah ditemukan</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -173,77 +173,123 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Get dashboard data from context
-    var monthlyRevenue = {{ monthly_revenue|safe }};
-    
-    // Monthly Revenue Chart
-    document.addEventListener('DOMContentLoaded', function() {
-        var ctx1 = document.getElementById('revenueChart').getContext('2d');
-        
-        var labels = monthlyRevenue.map(item => item.month);
-        var data = monthlyRevenue.map(item => item.total);
-        
-        var revenueChart = new Chart(ctx1, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Total Revenue (Rp)',
-                    data: data,
-                    backgroundColor: 'rgba(5, 146, 18, 0.7)',
-                    borderColor: 'rgba(5, 146, 18, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return 'Rp ' + value.toLocaleString('id-ID');
+    // Function to initialize charts
+    function initializeCharts() {
+        try {
+            // Get dashboard data from context
+            var monthlyRevenue = {{ monthly_revenue|safe }};
+            
+            // Monthly Revenue Chart
+            var ctx1 = document.getElementById('revenueChart').getContext('2d');
+            
+            var labels = monthlyRevenue.map(item => item.month);
+            var data = monthlyRevenue.map(item => item.total);
+            
+            var revenueChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Pendapatan (Rp)',
+                        data: data,
+                        backgroundColor: 'rgba(5, 146, 18, 0.7)',
+                        borderColor: 'rgba(5, 146, 18, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'Rp ' + value.toLocaleString('id-ID');
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
-        
-        // Category Distribution Chart (dummy data for now)
-        var ctx2 = document.getElementById('categoryChart').getContext('2d');
-        var categoryChart = new Chart(ctx2, {
-            type: 'doughnut',
-            data: {
-                labels: ['Concrete Products', 'Accessories', 'Tools', 'Materials'],
-                datasets: [{
-                    data: [45, 25, 20, 10],
-                    backgroundColor: [
-                        'rgba(5, 146, 18, 0.7)',
-                        'rgba(9, 132, 227, 0.7)',
-                        'rgba(255, 159, 67, 0.7)',
-                        'rgba(153, 102, 255, 0.7)'
-                    ],
-                    borderColor: [
-                        'rgba(5, 146, 18, 1)',
-                        'rgba(9, 132, 227, 1)',
-                        'rgba(255, 159, 67, 1)',
-                        'rgba(153, 102, 255, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
+            });
+            
+            // Best Selling Products Chart
+            var bestSellingProducts = {{ best_selling_products|safe }};
+            
+            if (bestSellingProducts && bestSellingProducts.length > 0) {
+                var ctx2 = document.getElementById('bestSellingChart').getContext('2d');
+                
+                var productLabels = bestSellingProducts.map(item => item.produk__nama_produk);
+                var productQuantities = bestSellingProducts.map(item => item.total_quantity);
+                
+                // Generate colors for the chart
+                var backgroundColors = [
+                    'rgba(5, 146, 18, 0.7)',
+                    'rgba(9, 132, 227, 0.7)',
+                    'rgba(255, 159, 67, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 99, 132, 0.7)'
+                ];
+                
+                var borderColors = [
+                    'rgba(5, 146, 18, 1)',
+                    'rgba(9, 132, 227, 1)',
+                    'rgba(255, 159, 67, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 99, 132, 1)'
+                ];
+                
+                var bestSellingChart = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: productLabels,
+                        datasets: [{
+                            data: productQuantities,
+                            backgroundColor: backgroundColors.slice(0, productQuantities.length),
+                            borderColor: borderColors.slice(0, productQuantities.length),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.label + ': ' + context.raw + ' unit';
+                                    }
+                                }
+                            }
+                        }
                     }
+                });
+            } else {
+                // If no data, show a message
+                var canvas = document.getElementById('bestSellingChart');
+                if (canvas) {
+                    canvas.parentNode.innerHTML = 
+                        '<p class="text-center text-muted">Tidak ada data produk terlaris tersedia</p>';
                 }
             }
-        });
-    });
+        } catch (error) {
+            console.error('Error initializing charts:', error);
+            // Show error message to user
+            document.getElementById('revenueChart').parentNode.innerHTML = 
+                '<p class="text-center text-danger">Error loading chart data</p>';
+            document.getElementById('bestSellingChart').parentNode.innerHTML = 
+                '<p class="text-center text-danger">Error loading chart data</p>';
+        }
+    }
+    
+    // Initialize charts when the page is loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeCharts);
+    } else {
+        initializeCharts();
+    }
 </script>
 {% endblock %}

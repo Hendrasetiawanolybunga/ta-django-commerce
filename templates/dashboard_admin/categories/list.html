@@ -1,14 +1,14 @@
 {% extends 'dashboard_admin/base.html' %}
 {% load static %}
 
-{% block title %}Categories{% endblock %}
+{% block title %}Kategori{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Category Management</h2>
+        <h2>Manajemen Kategori</h2>
         <a href="{% url 'dashboard_admin:category_create' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Add New Category
+            <i class="fas fa-plus"></i> Tambah Kategori Baru
         </a>
     </div>
     
@@ -19,8 +19,8 @@
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Category Name</th>
-                            <th>Actions</th>
+                            <th>Nama Kategori</th>
+                            <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -39,7 +39,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="3" class="text-center">No categories found</td>
+                            <td colspan="3" class="text-center">Tidak ada kategori ditemukan</td>
                         </tr>
                         {% endfor %}
                     </tbody>

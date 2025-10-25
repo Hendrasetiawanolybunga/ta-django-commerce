@@ -83,14 +83,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- Favorite product badge for birthday discount with aggressive styling -->
-                {% if not p.diskon_aktif and qualifies_for_birthday_discount %}
-                <div class="position-absolute top-0 start-0 m-1 favorite-badge-wrapper">
-                    <span class="badge bg-warning text-dark fs-6 favorite-badge">
-                        <i class="fas fa-heart me-1"></i>Favorit
-                    </span>
-                </div>
-                {% endif %}
                 <!-- Made image fully responsive with fixed aspect ratio -->
                 <div class="ratio ratio-1x1">
                     <img src="{{ p.foto_produk.url }}" class="card-img-top object-fit-cover" alt="{{ p.nama_produk }}">
