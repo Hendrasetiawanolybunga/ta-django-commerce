@@ -670,6 +670,20 @@ def transaction_create(request):
                         for instance in formset.deleted_objects:
                             instance.delete()
                         
+                        # Reduce stock for the products in this transaction
+                        # This should be done after the transaction and detail transactions are saved
+                        for instance in instances:
+                            if instance.produk and instance.jumlah_produk:
+                                try:
+                                    jumlah_int = int(instance.jumlah_produk)
+                                    if jumlah_int > 0:
+                                        # Reduce stock
+                                        produk = instance.produk
+                                        produk.stok_produk -= jumlah_int
+                                        produk.save(update_fields=['stok_produk'])
+                                except (ValueError, TypeError):
+                                    pass  # Skip invalid quantities
+                        
                         messages.success(request, f'Transaction #{transaction.id} created successfully.')
                         return redirect('dashboard_admin:transaction_list')
                 except Exception as e:
