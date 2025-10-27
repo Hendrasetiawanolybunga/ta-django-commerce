@@ -59,9 +59,11 @@
                                 <a href="{% url 'dashboard_admin:customer_update' customer.pk %}" class="btn btn-sm btn-warning" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="{% url 'dashboard_admin:customer_delete' customer.pk %}" class="btn btn-sm btn-danger" title="Hapus">
+                                <!-- Delete button using universal modal -->
+                                <button type="button" class="btn btn-sm btn-danger delete-btn" title="Hapus" 
+                                        data-url="{% url 'dashboard_admin:customer_delete' customer.pk %}">
                                     <i class="fas fa-trash"></i>
-                                </a>
+                                </button>
                             </td>
                         </tr>
                         {% empty %}

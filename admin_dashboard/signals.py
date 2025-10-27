@@ -3,9 +3,8 @@ from django.dispatch import receiver
 from django.apps import apps
 from django.utils import timezone
 from datetime import date
-from .models import Produk, Transaksi, Notifikasi
 
-@receiver(post_save, sender=Produk)
+@receiver(post_save, sender=apps.get_model('admin_dashboard', 'Produk'))
 def notify_new_product(sender, instance, created, **kwargs):
     """
     Notifikasi Produk Baru:
@@ -14,8 +13,9 @@ def notify_new_product(sender, instance, created, **kwargs):
     - Aksi: Buat Notifikasi untuk SEMUA Pelanggan: "Produk baru telah ditambahkan: [Nama Produk]".
     """
     if created:
-        # Get Pelanggan model to avoid circular imports
+        # Get models to avoid circular imports
         Pelanggan = apps.get_model('admin_dashboard', 'Pelanggan')
+        Notifikasi = apps.get_model('admin_dashboard', 'Notifikasi')
         
         # Get all customers
         customers = Pelanggan.objects.all()
@@ -28,35 +28,43 @@ def notify_new_product(sender, instance, created, **kwargs):
                 isi_pesan=f"Produk baru telah ditambahkan: {instance.nama_produk}"
             )
 
-@receiver(post_save, sender=Produk)
-def notify_stock_update(sender, instance, created, **kwargs):
+@receiver(post_save, sender=apps.get_model('admin_dashboard', 'Produk'))
+def notify_stock_update(sender, instance, created, update_fields=None, **kwargs):
     """
     Notifikasi Stok Bertambah:
     - Target: post_save pada Model Produk.
     - Kondisi: Dipicu ketika objek diperbarui (created=False) DAN instance.stok_produk 
-      lebih besar dari stok lama (gunakan update_fields untuk cek).
-    - Aksi: Buat Notifikasi untuk SEMUA Pelanggan: "Stok [Nama Produk] telah diperbarui!".
+      lebih besar dari stok lama.
+    - Aksi: Buat Notifikasi untuk SEMUA Pelanggan: "Stok [Nama Produk] telah ditambahkan kembali!".
     """
     # Only for updates, not new creations
     if not created:
-        # Check if stock was updated (this is a simplified check)
-        # In a real application, you might want to track the previous stock value
-        # For now, we'll just send notification on any update
-        # Get Pelanggan model to avoid circular imports
-        Pelanggan = apps.get_model('admin_dashboard', 'Pelanggan')
-        
-        # Get all customers
-        customers = Pelanggan.objects.all()
-        
-        # Create notification for all customers
-        for customer in customers:
-            Notifikasi.objects.create(
-                pelanggan=customer,
-                tipe_pesan="Update Stok",
-                isi_pesan=f"Stok {instance.nama_produk} telah diperbarui!"
-            )
+        # Get the old stock value from database before this update
+        try:
+            old_instance = sender.objects.get(pk=instance.pk)
+            old_stock = old_instance.stok_produk
+            
+            # Only send notification if stock has actually increased
+            if instance.stok_produk > old_stock:
+                # Get models to avoid circular imports
+                Pelanggan = apps.get_model('admin_dashboard', 'Pelanggan')
+                Notifikasi = apps.get_model('admin_dashboard', 'Notifikasi')
+                
+                # Get all customers
+                customers = Pelanggan.objects.all()
+                
+                # Create notification for all customers
+                for customer in customers:
+                    Notifikasi.objects.create(
+                        pelanggan=customer,
+                        tipe_pesan="Update Stok",
+                        isi_pesan=f"Stok {instance.nama_produk} telah ditambahkan kembali!"
+                    )
+        except sender.DoesNotExist:
+            # If the instance doesn't exist (somehow), skip notification
+            pass
 
-@receiver(post_save, sender=Transaksi)
+@receiver(post_save, sender=apps.get_model('admin_dashboard', 'Transaksi'))
 def notify_shipping_status(sender, instance, created, **kwargs):
     """
     Notifikasi Status DIKIRIM:
@@ -67,13 +75,16 @@ def notify_shipping_status(sender, instance, created, **kwargs):
     """
     # Only for updates, not new creations
     if not created and instance.status_transaksi == 'DIKIRIM':
+        # Get Notifikasi model to avoid circular imports
+        Notifikasi = apps.get_model('admin_dashboard', 'Notifikasi')
+        
         Notifikasi.objects.create(
             pelanggan=instance.pelanggan,
             tipe_pesan="Pesanan Dikirim",
             isi_pesan=f"Pesanan Anda #{instance.id} telah dikirim!"
         )
 
-@receiver(post_save, sender=Transaksi)
+@receiver(post_save, sender=apps.get_model('admin_dashboard', 'Transaksi'))
 def notify_completion_status(sender, instance, created, **kwargs):
     """
     Notifikasi Status SELESAI (Ajakan Feedback):
@@ -84,6 +95,9 @@ def notify_completion_status(sender, instance, created, **kwargs):
     """
     # Only for updates, not new creations
     if not created and instance.status_transaksi == 'SELESAI':
+        # Get Notifikasi model to avoid circular imports
+        Notifikasi = apps.get_model('admin_dashboard', 'Notifikasi')
+        
         Notifikasi.objects.create(
             pelanggan=instance.pelanggan,
             tipe_pesan="Pesanan Selesai",
@@ -95,8 +109,10 @@ def check_birthday_notifications():
     """
     Check for customers with birthdays today and send appropriate notifications
     """
-    # Get Pelanggan model to avoid circular imports
+    # Get models to avoid circular imports
     Pelanggan = apps.get_model('admin_dashboard', 'Pelanggan')
+    Transaksi = apps.get_model('admin_dashboard', 'Transaksi')
+    Notifikasi = apps.get_model('admin_dashboard', 'Notifikasi')
     
     # Get all customers with birthdays today
     today = date.today()
@@ -115,17 +131,9 @@ def check_birthday_notifications():
         
         # If no birthday notification sent today, create one
         if not existing_notification:
-            # Calculate total spending for paid transactions
-            from django.db.models import Sum
-            total_spending = Transaksi.objects.filter(
-                pelanggan=customer,
-                status_transaksi__in=['DIBAYAR', 'DIKIRIM', 'SELESAI']
-            ).aggregate(
-                total_belanja=Sum('total')
-            )['total_belanja'] or 0
-            
-            # Check customer loyalty status
-            is_loyal = total_spending >= 5000000
+            # Use the refactored property method to check loyalty status
+            # This ensures consistent logic across the application
+            is_loyal = customer.is_loyal
             
             # Send appropriate notification based on loyalty status
             if is_loyal:

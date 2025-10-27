@@ -32,9 +32,11 @@
                                 <a href="{% url 'dashboard_admin:category_update' category.pk %}" class="btn btn-sm btn-warning" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="{% url 'dashboard_admin:category_delete' category.pk %}" class="btn btn-sm btn-danger" title="Delete">
+                                <!-- Delete button using universal modal -->
+                                <button type="button" class="btn btn-sm btn-danger delete-btn" title="Delete" 
+                                        data-url="{% url 'dashboard_admin:category_delete' category.pk %}">
                                     <i class="fas fa-trash"></i>
-                                </a>
+                                </button>
                             </td>
                         </tr>
                         {% empty %}

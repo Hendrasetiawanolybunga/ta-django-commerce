@@ -40,9 +40,11 @@
                             </td>
                             <td>{{ notification.created_at|date:"d M Y H:i" }}</td>
                             <td>
-                                <a href="{% url 'dashboard_admin:notification_delete' notification.pk %}" class="btn btn-sm btn-danger" title="Hapus">
+                                <!-- Delete button using universal modal -->
+                                <button type="button" class="btn btn-sm btn-danger delete-btn" title="Hapus" 
+                                        data-url="{% url 'dashboard_admin:notification_delete' notification.pk %}">
                                     <i class="fas fa-trash"></i>
-                                </a>
+                                </button>
                             </td>
                         </tr>
                         {% empty %}

@@ -10,6 +10,13 @@
             <a href="{% url 'dashboard_admin:transaction_update' transaction.pk %}" class="btn btn-warning me-2">
                 <i class="fas fa-edit"></i> Edit
             </a>
+            <!-- Delete button with confirmation -->
+            <form method="post" action="{% url 'dashboard_admin:transaction_delete' transaction.pk %}" class="d-inline delete-form">
+                {% csrf_token %}
+                <button type="button" class="btn btn-danger me-2 delete-btn">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </form>
             <a href="{% url 'dashboard_admin:transaction_list' %}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Transactions
             </a>
@@ -35,9 +42,20 @@
                         </li>
                         <li class="list-group-item">
                             <strong>Status:</strong> 
-                            <span class="badge bg-{{ transaction.status_transaksi|lower }}">
-                                {{ transaction.status_transaksi }}
-                            </span>
+                            <!-- Status badges with proper Bootstrap classes -->
+                            {% if transaction.status_transaksi == 'DIPROSES' %}
+                                <span class="badge bg-warning text-dark">Diproses</span>
+                            {% elif transaction.status_transaksi == 'DIBAYAR' %}
+                                <span class="badge bg-primary">Dibayar</span>
+                            {% elif transaction.status_transaksi == 'DIKIRIM' %}
+                                <span class="badge bg-info text-dark">Dikirim</span>
+                            {% elif transaction.status_transaksi == 'SELESAI' %}
+                                <span class="badge bg-success">Selesai</span>
+                            {% elif transaction.status_transaksi == 'DIBATALKAN' %}
+                                <span class="badge bg-danger">Dibatalkan</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ transaction.status_transaksi }}</span>
+                            {% endif %}
                         </li>
                         <li class="list-group-item">
                             <strong>Shipping Address:</strong> {{ transaction.alamat_pengiriman|default:"-" }}
@@ -121,4 +139,24 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add confirmation dialog for delete button
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteButtons = document.querySelectorAll('.delete-btn');
+        
+        deleteButtons.forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                if (confirm('Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.')) {
+                    // Submit the form if user confirms
+                    this.closest('form').submit();
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

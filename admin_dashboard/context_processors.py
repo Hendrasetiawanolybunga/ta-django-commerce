@@ -1,4 +1,4 @@
-from .models import Notifikasi
+from django.apps import apps
 
 def notification_cart_context(request):
     """
@@ -14,6 +14,9 @@ def notification_cart_context(request):
     if 'pelanggan_id' in request.session:
         pelanggan_id = request.session['pelanggan_id']
         
+        # Get Notifikasi model to avoid circular imports
+        Notifikasi = apps.get_model('admin_dashboard', 'Notifikasi')
+        
         # Count unseen notifications
         unseen_count = Notifikasi.objects.filter(
             pelanggan_id=pelanggan_id,
@@ -21,7 +24,7 @@ def notification_cart_context(request):
         ).count()
         context['unseen_notifications_count'] = unseen_count
         
-        # Count cart items
+        # Count cart items (total quantity of unique items)
         keranjang = request.session.get('keranjang', {})
         cart_count = sum(keranjang.values())
         context['cart_item_count'] = cart_count

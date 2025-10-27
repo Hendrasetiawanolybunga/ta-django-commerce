@@ -68,18 +68,43 @@ class DiskonForm(forms.ModelForm):
         self.fields['persen_diskon'].widget.attrs.update({'class': 'form-control'})
         self.fields['status'].widget.attrs.update({'class': 'form-control'})
 
-class TransaksiForm(forms.ModelForm):
+# Custom form for transaction details to handle new records properly
+class DetailTransaksiForm(forms.ModelForm):
     class Meta:
-        model = Transaksi
-        fields = ['pelanggan', 'status_transaksi', 'ongkir']
+        model = DetailTransaksi
+        fields = ['produk', 'jumlah_produk', 'sub_total']
         widgets = {
-            'status_transaksi': forms.Select(attrs={'class': 'form-control'}),
-            'ongkir': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'produk': forms.Select(attrs={'class': 'form-control product-select'}),
+            'jumlah_produk': forms.NumberInput(attrs={'class': 'form-control quantity-input'}),
+            'sub_total': forms.NumberInput(attrs={'readonly': 'readonly', 'class': 'form-control subtotal-input'}),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['pelanggan'].widget.attrs.update({'class': 'form-control'})
+        # Make fields required for proper validation
+        self.fields['produk'].required = True
+        self.fields['jumlah_produk'].required = True
+
+# Custom form for main transaction
+class TransaksiForm(forms.ModelForm):
+    class Meta:
+        model = Transaksi
+        fields = ['pelanggan', 'status_transaksi', 'ongkir', 'alamat_pengiriman', 'bukti_bayar']
+        widgets = {
+            'pelanggan': forms.Select(attrs={'class': 'form-control'}),
+            'status_transaksi': forms.Select(attrs={'class': 'form-control'}),
+            'ongkir': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'alamat_pengiriman': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'bukti_bayar': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make all main fields required
+        self.fields['pelanggan'].required = True
+        self.fields['status_transaksi'].required = True
+        self.fields['ongkir'].required = True
+        self.fields['alamat_pengiriman'].required = True
         self.fields['status_transaksi'].choices = [
             ('DIPROSES', 'Diproses'),
             ('DIBAYAR', 'Dibayar'),
@@ -88,32 +113,11 @@ class TransaksiForm(forms.ModelForm):
             ('DIBATALKAN', 'Dibatalkan'),
         ]
 
-# Custom form for transaction details to handle existing records properly
-class DetailTransaksiForm(forms.ModelForm):
-    class Meta:
-        model = DetailTransaksi
-        fields = ['produk', 'jumlah_produk']
-        widgets = {
-            'produk': forms.Select(attrs={'class': 'form-control'}),
-            'jumlah_produk': forms.NumberInput(attrs={'class': 'form-control'}),
-        }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # For existing records, make fields not required
-        # This allows editing the main transaction form without triggering validation errors on unchanged detail forms
-        if self.instance and self.instance.pk:
-            self.fields['produk'].required = False
-            self.fields['jumlah_produk'].required = False
-
 # Create a formset for transaction details with our custom form
 DetailTransaksiFormSet = inlineformset_factory(
     Transaksi, DetailTransaksi,
     form=DetailTransaksiForm,
-    fields=['produk', 'jumlah_produk'],
-    extra=0,  # Show exactly the number of existing items, no extra forms
-    widgets={
-        'produk': forms.Select(attrs={'class': 'form-control'}),
-        'jumlah_produk': forms.NumberInput(attrs={'class': 'form-control'}),
-    }
+    fields=['produk', 'jumlah_produk', 'sub_total'],
+    extra=1,
+    can_delete=True
 )

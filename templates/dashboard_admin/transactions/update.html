@@ -7,14 +7,23 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Perbarui Transaksi #{{ transaction.id }}</h2>
-        <a href="{% url 'dashboard_admin:transaction_list' %}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Kembali ke Daftar Transaksi
-        </a>
+        <div>
+            <!-- Delete button with confirmation -->
+            <form method="post" action="{% url 'dashboard_admin:transaction_delete' transaction.pk %}" class="d-inline delete-form">
+                {% csrf_token %}
+                <button type="button" class="btn btn-danger me-2 delete-btn">
+                    <i class="fas fa-trash"></i> Hapus
+                </button>
+            </form>
+            <a href="{% url 'dashboard_admin:transaction_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Kembali ke Daftar Transaksi
+            </a>
+        </div>
     </div>
     
     <div class="card">
         <div class="card-body">
-            <form method="post">
+            <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="row">
                     <div class="col-md-6">
@@ -31,9 +40,28 @@
                     </div>
                 </div>
                 
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.ongkir.id_for_label }}" class="form-label">Biaya Pengiriman (Rp)</label>
+                            {{ form.ongkir }}
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="mb-3">
-                    <label for="{{ form.ongkir.id_for_label }}" class="form-label">Biaya Pengiriman (Rp)</label>
-                    {{ form.ongkir }}
+                    <label for="{{ form.alamat_pengiriman.id_for_label }}" class="form-label">Alamat Pengiriman</label>
+                    {{ form.alamat_pengiriman }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.bukti_bayar.id_for_label }}" class="form-label">Bukti Pembayaran</label>
+                    {{ form.bukti_bayar }}
+                    {% if transaction.bukti_bayar %}
+                        <div class="mt-2">
+                            <small class="text-muted">File saat ini: <a href="{{ transaction.bukti_bayar.url }}" target="_blank">{{ transaction.bukti_bayar.name }}</a></small>
+                        </div>
+                    {% endif %}
                 </div>
                 
                 <h4 class="mt-4 mb-3">Detail Transaksi</h4>
@@ -41,30 +69,42 @@
                 
                 <div id="detail-transaksi-formset">
                     {% for form in formset %}
-                        <div class="detail-transaksi-form mb-3 p-3 border rounded">
+                        <div class="p-3 mb-2 border rounded detail-item">
                             {% for hidden in form.hidden_fields %}
                                 {{ hidden }}
                             {% endfor %}
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="{{ form.produk.id_for_label }}" class="form-label">Produk *</label>
-                                        {{ form.produk }}
-                                    </div>
+                            <div class="row g-3 align-items-center">
+                                <!-- Kolom Produk (Lebih besar) -->
+                                <div class="col-md-5">
+                                    <label class="form-label">Produk</label>
+                                    {{ form.produk }}
+                                    <!-- WAJIB: Tampilkan Error field produk -->
+                                    {% if form.produk.errors %}<div class="text-danger">{{ form.produk.errors }}</div>{% endif %}
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="{{ form.jumlah_produk.id_for_label }}" class="form-label">Jumlah *</label>
-                                        {{ form.jumlah_produk }}
-                                    </div>
+
+                                <!-- Kolom Jumlah Produk -->
+                                <div class="col-md-3">
+                                    <label class="form-label">Jumlah</label>
+                                    {{ form.jumlah_produk }}
+                                    {% if form.jumlah_produk.errors %}<div class="text-danger">{{ form.jumlah_produk.errors }}</div>{% endif %}
+                                </div>
+
+                                <!-- Kolom Sub Total (Read Only) -->
+                                <div class="col-md-3">
+                                    <label class="form-label">Sub Total (Rp)</label>
+                                    <!-- Field ini sudah diset read-only di forms.py -->
+                                    {{ form.sub_total }}
+                                    <p class="mt-2 text-muted small subtotal-display">Rp 0</p>
+                                </div>
+
+                                <!-- Kolom Tombol Hapus -->
+                                <div class="col-md-1 d-flex align-items-end">
+                                    {{ form.DELETE }}
+                                    <button type="button" class="btn btn-danger btn-sm w-100 delete-item-btn" title="Hapus Item">
+                                        <i class="fas fa-trash"></i> Hapus
+                                    </button>
                                 </div>
                             </div>
-                            {% if form.DELETE %}
-                                <div class="form-check mb-2">
-                                    {{ form.DELETE }}
-                                    <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">Hapus item ini</label>
-                                </div>
-                            {% endif %}
                         </div>
                     {% endfor %}
                 </div>
@@ -76,28 +116,60 @@
                             {% for hidden in form.hidden_fields %}
                                 {{ hidden }}
                             {% endfor %}
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="{{ form.produk.id_for_label }}" class="form-label">Produk *</label>
-                                        {{ form.produk }}
-                                    </div>
+                            <div class="row g-3 align-items-center">
+                                <!-- Kolom Produk (Lebih besar) -->
+                                <div class="col-md-5">
+                                    <label class="form-label">Produk</label>
+                                    {{ form.produk }}
+                                    <!-- WAJIB: Tampilkan Error field produk -->
+                                    {% if form.produk.errors %}<div class="text-danger">{{ form.produk.errors }}</div>{% endif %}
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="{{ form.jumlah_produk.id_for_label }}" class="form-label">Jumlah *</label>
-                                        {{ form.jumlah_produk }}
-                                    </div>
+
+                                <!-- Kolom Jumlah Produk -->
+                                <div class="col-md-3">
+                                    <label class="form-label">Jumlah</label>
+                                    {{ form.jumlah_produk }}
+                                    {% if form.jumlah_produk.errors %}<div class="text-danger">{{ form.jumlah_produk.errors }}</div>{% endif %}
+                                </div>
+
+                                <!-- Kolom Sub Total (Read Only) -->
+                                <div class="col-md-3">
+                                    <label class="form-label">Sub Total (Rp)</label>
+                                    <!-- Field ini sudah diset read-only di forms.py -->
+                                    {{ form.sub_total }}
+                                    <p class="mt-2 text-muted small subtotal-display">Rp 0</p>
+                                </div>
+
+                                <!-- Kolom Tombol Hapus -->
+                                <div class="col-md-1 d-flex align-items-end">
+                                    {{ form.DELETE }}
+                                    <button type="button" class="btn btn-danger btn-sm w-100 delete-item-btn" title="Hapus Item">
+                                        <i class="fas fa-trash"></i> Hapus
+                                    </button>
                                 </div>
                             </div>
-                            {% if form.DELETE %}
-                                <div class="form-check mb-2">
-                                    {{ form.DELETE }}
-                                    <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">Hapus item ini</label>
-                                </div>
-                            {% endif %}
                         {% endif %}
                     {% endfor %}
+                </div>
+                
+                <!-- Transaction Summary -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5>Ringkasan Transaksi</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Sub Total:</strong> Rp <span id="subtotal-amount">0</span></p>
+                                <p><strong>Ongkos Kirim:</strong> Rp <span id="shipping-amount">{{ transaction.ongkir|floatformat:0 }}</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="fs-5"><strong>Total:</strong> Rp <span id="total-amount">{{ transaction.total|floatformat:0 }}</span></p>
+                                <!-- Hidden input for total value to be sent to server -->
+                                <input type="hidden" id="id_total" name="total" value="{{ transaction.total|floatformat:2 }}">
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
@@ -122,9 +194,20 @@
                 </li>
                 <li class="list-group-item">
                     <strong>Status Saat Ini:</strong> 
-                    <span class="badge bg-{{ transaction.status_transaksi|lower }}">
-                        {{ transaction.status_transaksi }}
-                    </span>
+                    <!-- Status badges with proper Bootstrap classes -->
+                    {% if transaction.status_transaksi == 'DIPROSES' %}
+                        <span class="badge bg-warning text-dark">Diproses</span>
+                    {% elif transaction.status_transaksi == 'DIBAYAR' %}
+                        <span class="badge bg-primary">Dibayar</span>
+                    {% elif transaction.status_transaksi == 'DIKIRIM' %}
+                        <span class="badge bg-info text-dark">Dikirim</span>
+                    {% elif transaction.status_transaksi == 'SELESAI' %}
+                        <span class="badge bg-success">Selesai</span>
+                    {% elif transaction.status_transaksi == 'DIBATALKAN' %}
+                        <span class="badge bg-danger">Dibatalkan</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ transaction.status_transaksi }}</span>
+                    {% endif %}
                 </li>
                 <li class="list-group-item">
                     <strong>Total Jumlah:</strong> Rp {{ transaction.total|floatformat:0 }}
@@ -140,8 +223,25 @@
 
 {% block extra_js %}
 <script>
+    // Pass product prices from Django to JavaScript
+    const productPrices = {{ product_prices|safe }};
+    
     // Dynamic formset handling for adding/removing detail transaction forms
     document.addEventListener('DOMContentLoaded', function() {
+        // Add confirmation dialog for delete button
+        const deleteButtons = document.querySelectorAll('.delete-btn');
+        
+        deleteButtons.forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                if (confirm('Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.')) {
+                    // Submit the form if user confirms
+                    this.closest('form').submit();
+                }
+            });
+        });
+        
         const formsetContainer = document.getElementById('detail-transaksi-formset');
         const addButton = document.createElement('button');
         addButton.type = 'button';
@@ -163,7 +263,7 @@
                 
                 // Create a new div for the form
                 const formDiv = document.createElement('div');
-                formDiv.className = 'detail-transaksi-form mb-3 p-3 border rounded';
+                formDiv.className = 'p-3 mb-2 border rounded detail-item';
                 formDiv.innerHTML = newForm;
                 
                 // Add remove button
@@ -174,6 +274,7 @@
                 removeButton.addEventListener('click', function() {
                     formDiv.remove();
                     updateFormIndexes();
+                    calculateTotals();
                 });
                 
                 formDiv.appendChild(removeButton);
@@ -184,12 +285,15 @@
                 
                 // Update form indexes
                 updateFormIndexes();
+                
+                // Add event listeners to new form elements
+                addEventListenersToForm(formDiv);
             });
         }
         
         // Function to update form indexes
         function updateFormIndexes() {
-            const forms = document.querySelectorAll('.detail-transaksi-form');
+            const forms = document.querySelectorAll('.detail-item');
             const totalForms = document.getElementById('id_detailtransaksi_set-TOTAL_FORMS');
             const initialForms = document.getElementById('id_detailtransaksi_set-INITIAL_FORMS');
             
@@ -219,8 +323,97 @@
             // Note: We don't update INITIAL_FORMS here as it should reflect the original count
         }
         
+        // Add event listeners to form elements for real-time calculations
+        function addEventListenersToForm(formElement) {
+            const productSelect = formElement.querySelector('.product-select');
+            const quantityInput = formElement.querySelector('.quantity-input');
+            const subtotalInput = formElement.querySelector('.subtotal-input');
+            
+            if (productSelect && quantityInput && subtotalInput) {
+                // Calculate subtotal when product or quantity changes
+                productSelect.addEventListener('change', calculateSubtotal);
+                quantityInput.addEventListener('input', calculateSubtotal);
+                
+                // Initialize subtotal calculation for existing forms
+                calculateSubtotal.call(productSelect);
+            }
+        }
+        
+        // Calculate subtotal for a line item
+        function calculateSubtotal() {
+            const formElement = this.closest('.detail-item');
+            const productSelect = formElement.querySelector('.product-select');
+            const quantityInput = formElement.querySelector('.quantity-input');
+            const subtotalInput = formElement.querySelector('.subtotal-input');
+            
+            if (productSelect && quantityInput && subtotalInput) {
+                const productId = productSelect.value;
+                const quantity = parseInt(quantityInput.value) || 0;
+                
+                if (productId && quantity > 0 && productPrices[productId]) {
+                    const price = productPrices[productId];
+                    const subtotal = price * quantity;
+                    subtotalInput.value = subtotal.toFixed(2);
+                    
+                    // Update the display text
+                    const displayElement = formElement.querySelector('.subtotal-display');
+                    if (displayElement) {
+                        displayElement.textContent = 'Rp ' + subtotal.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                    }
+                } else {
+                    subtotalInput.value = '0.00';
+                    
+                    // Update the display text
+                    const displayElement = formElement.querySelector('.subtotal-display');
+                    if (displayElement) {
+                        displayElement.textContent = 'Rp 0';
+                    }
+                }
+                
+                // Update totals
+                calculateTotals();
+            }
+        }
+        
+        // Calculate overall totals
+        function calculateTotals() {
+            // Calculate subtotal (sum of all line items)
+            let subtotal = 0;
+            const subtotalInputs = document.querySelectorAll('.subtotal-input');
+            subtotalInputs.forEach(input => {
+                const value = parseFloat(input.value) || 0;
+                subtotal += value;
+            });
+            
+            // Get shipping value
+            const shippingInput = document.getElementById('id_ongkir');
+            const shipping = parseFloat(shippingInput.value) || 0;
+            
+            // Calculate total
+            const total = subtotal + shipping;
+            
+            // Update display elements with formatted numbers
+            document.getElementById('subtotal-amount').textContent = subtotal.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            document.getElementById('shipping-amount').textContent = shipping.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            document.getElementById('total-amount').textContent = total.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            
+            // Update hidden total input with pure numeric value
+            document.getElementById('id_total').value = total.toFixed(2);
+        }
+        
+        // Add event listeners to existing forms
+        const existingForms = document.querySelectorAll('.detail-item');
+        existingForms.forEach(form => {
+            addEventListenersToForm(form);
+        });
+        
+        // Add event listeners to shipping input
+        const shippingInput = document.getElementById('id_ongkir');
+        if (shippingInput) {
+            shippingInput.addEventListener('input', calculateTotals);
+        }
+        
         // Add remove buttons to existing forms
-        const existingForms = document.querySelectorAll('.detail-transaksi-form');
         existingForms.forEach((form, index) => {
             if (index > 0) { // Don't add remove button to the first form
                 const removeButton = document.createElement('button');
@@ -230,10 +423,14 @@
                 removeButton.addEventListener('click', function() {
                     form.remove();
                     updateFormIndexes();
+                    calculateTotals();
                 });
                 form.appendChild(removeButton);
             }
         });
+        
+        // Initialize calculations
+        calculateTotals();
     });
 </script>
 {% endblock %}

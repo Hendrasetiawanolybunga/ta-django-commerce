@@ -12,6 +12,7 @@ from django.core.paginator import Paginator
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.hashers import make_password
 from django.apps import apps
+from django.views.decorators.http import require_POST
 
 # ReportLab imports for PDF generation
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -23,7 +24,7 @@ from io import BytesIO
 
 # Import models from admin_dashboard app
 from admin_dashboard.models import Admin, Pelanggan, Produk, Kategori, Transaksi, DetailTransaksi, DiskonPelanggan, Notifikasi
-from .forms import PelangganForm, ProdukForm, KategoriForm, DiskonForm
+from .forms import PelangganForm, ProdukForm, KategoriForm, DiskonForm, TransaksiForm, DetailTransaksiFormSet
 
 # Create your views here.
 
@@ -104,7 +105,7 @@ def dashboard(request):
         # Get low stock products
         low_stock_products = Produk.objects.filter(stok_produk__lt=5).order_by('stok_produk')
         
-        # Get top 5 best selling products (by quantity)
+        # Get top 5 best selling products (by quantity) - prepare data for Chart.js
         PAID_STATUSES = ['DIBAYAR', 'DIKIRIM', 'SELESAI']
         best_selling_products = DetailTransaksi.objects.filter(
             transaksi__status_transaksi__in=PAID_STATUSES
@@ -114,6 +115,16 @@ def dashboard(request):
             total_quantity=Sum('jumlah_produk'),
             total_revenue=Sum('sub_total')
         ).order_by('-total_quantity')[:5]
+        
+        # Prepare data for Chart.js
+        # Convert to list of dictionaries that can be serialized to JSON
+        chart_best_selling_products = []
+        for product in best_selling_products:
+            chart_best_selling_products.append({
+                'produk__nama_produk': product['produk__nama_produk'],
+                'total_quantity': int(product['total_quantity']),
+                'total_revenue': float(product['total_revenue'])
+            })
         
         # Get CRM counts
         from datetime import date
@@ -144,7 +155,7 @@ def dashboard(request):
         monthly_revenue = []
         recent_transactions = []
         low_stock_products = []
-        best_selling_products = []
+        chart_best_selling_products = []  # Use the chart-ready data
         new_customer_count = 0
         birthday_customer_count = 0
         new_transaction_count = 0
@@ -162,7 +173,7 @@ def dashboard(request):
         'monthly_revenue': monthly_revenue,
         'recent_transactions': recent_transactions,
         'low_stock_products': low_stock_products,
-        'best_selling_products': best_selling_products,
+        'best_selling_products': chart_best_selling_products,  # Use chart-ready data
         'new_customer_count': new_customer_count,
         'birthday_customer_count': birthday_customer_count,
         'new_transaction_count': new_transaction_count,
@@ -202,7 +213,7 @@ def analytics(request):
             'total': float(monthly_total)
         })
     
-    # Get top 5 best selling products (by quantity)
+    # Get top 5 best selling products (by quantity) - prepare data for Chart.js
     top_products = DetailTransaksi.objects.filter(
         transaksi__status_transaksi__in=PAID_STATUSES
     ).values(
@@ -211,6 +222,15 @@ def analytics(request):
         total_quantity=Sum('jumlah_produk'),
         total_revenue=Sum('sub_total')
     ).order_by('-total_quantity')[:5]
+    
+    # Prepare data for Chart.js
+    chart_top_products = []
+    for product in top_products:
+        chart_top_products.append({
+            'produk__nama_produk': product['produk__nama_produk'],
+            'total_quantity': int(product['total_quantity']),
+            'total_revenue': float(product['total_revenue'])
+        })
     
     # Get top 3 loyal customers (by total purchase amount)
     top_customers = Transaksi.objects.filter(
@@ -223,7 +243,7 @@ def analytics(request):
     
     context = {
         'monthly_revenue': monthly_revenue,
-        'top_products': top_products,
+        'top_products': chart_top_products,  # Use chart-ready data
         'top_customers': top_customers
     }
     return render(request, 'dashboard_admin/analytics.html', context)
@@ -561,44 +581,99 @@ def transaction_list(request):
 
 @admin_required
 def transaction_create(request):
-    from .forms import TransaksiForm, DetailTransaksiFormSet
-    
     if request.method == 'POST':
-        form = TransaksiForm(request.POST)
+        form = TransaksiForm(request.POST, request.FILES)
         formset = DetailTransaksiFormSet(request.POST)
         
         if form.is_valid() and formset.is_valid():
-            try:
-                with db_transaction.atomic():
-                    # Save the transaction
-                    transaction = form.save(commit=False)
-                    transaction.save()
+            # Stock validation
+            stock_errors = []
+            valid_stock = True
+            
+            for i, detail_form in enumerate(formset):
+                # Check if the form is valid and not marked for deletion
+                if formset.can_delete and formset.deleted_forms and detail_form in formset.deleted_forms:
+                    continue
                     
-                    # Save the formset (detail transactions)
-                    formset.instance = transaction
-                    formset.save()
+                cleaned_data = getattr(detail_form, 'cleaned_data', {})
+                if cleaned_data and not cleaned_data.get('DELETE', False):
+                    produk = cleaned_data.get('produk')
+                    jumlah_produk = cleaned_data.get('jumlah_produk')
                     
-                    # Calculate total for the transaction
-                    total = 0
-                    for detail_form in formset.cleaned_data:
-                        if detail_form and not detail_form.get('DELETE', False):
-                            produk = detail_form['produk']
-                            jumlah = detail_form['jumlah_produk']
-                            sub_total = produk.harga_produk * jumlah
-                            total += sub_total
-                            
-                            # Update stock
-                            produk.stok_produk -= jumlah
-                            produk.save()
-                    
-                    # Add shipping cost to total
-                    transaction.total = total + transaction.ongkir
-                    transaction.save()
-                    
-                    messages.success(request, f'Transaction #{transaction.id} created successfully.')
-                    return redirect('dashboard_admin:transaction_list')
-            except Exception as e:
-                messages.error(request, f'Error creating transaction: {str(e)}')
+                    # Validate that both produk and jumlah_produk are provided
+                    if produk and jumlah_produk is not None:
+                        # Ensure jumlah_produk is a positive number
+                        try:
+                            jumlah_produk_int = int(jumlah_produk)
+                            if jumlah_produk_int > 0:
+                                # Validate stock
+                                if jumlah_produk_int > produk.stok_produk:
+                                    stock_errors.append(f"Stok untuk produk '{produk.nama_produk}' tidak mencukupi. Stok saat ini: {produk.stok_produk}.")
+                                    valid_stock = False
+                            elif jumlah_produk_int <= 0:
+                                # Add error for non-positive quantities
+                                stock_errors.append(f"Jumlah untuk produk '{produk.nama_produk}' harus lebih dari 0.")
+                                valid_stock = False
+                        except (ValueError, TypeError):
+                            # Handle case where jumlah_produk cannot be converted to int
+                            stock_errors.append(f"Jumlah untuk produk '{produk.nama_produk}' harus berupa angka.")
+                            valid_stock = False
+            
+            # If there are stock errors, add them to the formset and don't save
+            if not valid_stock:
+                for error in stock_errors:
+                    formset.add_error(None, error)  # Add as non-field error
+            else:
+                try:
+                    with db_transaction.atomic():
+                        # Save the transaction
+                        transaction = form.save(commit=False)
+                        
+                        # Calculate total for the transaction
+                        total = 0
+                        for detail_form in formset.cleaned_data:
+                            if detail_form and not detail_form.get('DELETE', False):
+                                produk = detail_form.get('produk')
+                                jumlah = detail_form.get('jumlah_produk')
+                                if produk and jumlah:  # Only calculate if both fields are provided
+                                    try:
+                                        jumlah_int = int(jumlah)
+                                        if jumlah_int > 0:
+                                            sub_total = produk.harga_produk * jumlah_int
+                                            total += sub_total
+                                    except (ValueError, TypeError):
+                                        pass  # Skip invalid quantities
+                        
+                        # Add shipping cost to get final total
+                        transaction.total = total + (transaction.ongkir or 0)
+                        # Set discount fields to default values
+                        transaction.total_diskon = 0
+                        transaction.keterangan_diskon = ""
+                        transaction.save()
+                        
+                        # Save the formset (detail transactions)
+                        formset.instance = transaction
+                        instances = formset.save(commit=False)
+                        
+                        # Calculate and set sub_total for each detail transaction
+                        for instance in instances:
+                            if instance.produk and instance.jumlah_produk:
+                                try:
+                                    jumlah_int = int(instance.jumlah_produk)
+                                    if jumlah_int > 0:
+                                        instance.sub_total = instance.produk.harga_produk * jumlah_int
+                                        instance.save()
+                                except (ValueError, TypeError):
+                                    pass  # Skip invalid quantities
+                        
+                        # Delete removed instances
+                        for instance in formset.deleted_objects:
+                            instance.delete()
+                        
+                        messages.success(request, f'Transaction #{transaction.id} created successfully.')
+                        return redirect('dashboard_admin:transaction_list')
+                except Exception as e:
+                    messages.error(request, f'Error creating transaction: {str(e)}')
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
@@ -609,17 +684,20 @@ def transaction_create(request):
     customers = Pelanggan.objects.all()
     products = Produk.objects.all()
     
-    # Create empty form for JavaScript template
-    empty_formset = DetailTransaksiFormSet(instance=Transaksi())
+    # Create a dictionary of product prices for JavaScript calculations
+    product_prices = {product.id: float(product.harga_produk) for product in products}
+    # Create a dictionary of product stock for JavaScript calculations
+    product_stock = {product.id: product.stok_produk for product in products}
     
     context = {
         'form': form,
         'formset': formset,
-        'empty_formset': empty_formset,
         'customers': customers,
         'products': products,
+        'product_prices': product_prices,
+        'product_stock': product_stock,
     }
-    return render(request, 'dashboard_admin/transactions/create.html', context)
+    return render(request, 'dashboard_admin/transactions/add.html', context)
 
 @admin_required
 def transaction_detail(request, pk):
@@ -664,22 +742,35 @@ def transaction_update(request, pk):
             try:
                 with db_transaction.atomic():
                     # Save the transaction
-                    transaction = form.save()
-                    
-                    # Save the formset (detail transactions)
-                    formset.save()
+                    transaction = form.save(commit=False)
                     
                     # Calculate total for the transaction
                     total = 0
-                    for detail in transaction.detailtransaksi_set.all():
-                        sub_total = detail.produk.harga_produk * detail.jumlah_produk
-                        detail.sub_total = sub_total
-                        detail.save()
-                        total += sub_total
+                    for detail in formset.cleaned_data:
+                        if detail and not detail.get('DELETE', False):
+                            produk = detail['produk']
+                            jumlah_produk = detail['jumlah_produk']
+                            sub_total = produk.harga_produk * jumlah_produk
+                            total += sub_total
                     
-                    # Add shipping cost to total
+                    # Add shipping cost to get final total
                     transaction.total = total + transaction.ongkir
+                    # Set discount fields to 0 as they're not used in manual input
+                    transaction.total_diskon = 0
+                    transaction.keterangan_diskon = ""
                     transaction.save()
+                    
+                    # Save the formset (detail transactions)
+                    instances = formset.save(commit=False)
+                    
+                    # Calculate and set sub_total for each detail transaction
+                    for instance in instances:
+                        instance.sub_total = instance.produk.harga_produk * instance.jumlah_produk
+                        instance.save()
+                    
+                    # Delete removed instances
+                    for instance in formset.deleted_objects:
+                        instance.delete()
                     
                     # Handle stock adjustments based on status changes
                     old_status = getattr(transaction, '_old_status', transaction.status_transaksi)
@@ -716,6 +807,9 @@ def transaction_update(request, pk):
     customers = Pelanggan.objects.all()
     products = Produk.objects.all()
     
+    # Create a dictionary of product prices for JavaScript calculations
+    product_prices = {product.id: float(product.harga_produk) for product in products}
+    
     # Create empty form for JavaScript template
     empty_formset = DetailTransaksiFormSet(instance=transaction)
     
@@ -725,7 +819,8 @@ def transaction_update(request, pk):
         'empty_formset': empty_formset,
         'transaction': transaction,
         'customers': customers,
-        'products': products
+        'products': products,
+        'product_prices': product_prices,
     }
     return render(request, 'dashboard_admin/transactions/update.html', context)
 
@@ -1101,3 +1196,14 @@ def generate_transaction_report_pdf(request):
     response.write(pdf_value)
     
     return response
+
+# Transaction Delete View
+@admin_required
+@require_POST
+def transaction_delete(request, pk):
+    """Delete a transaction"""
+    transaction = get_object_or_404(Transaksi, pk=pk)
+    transaction_id = transaction.id
+    transaction.delete()
+    messages.success(request, f'Transaction #{transaction_id} deleted successfully.')
+    return redirect('dashboard_admin:transaction_list')

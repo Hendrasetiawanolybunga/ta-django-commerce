@@ -36,8 +36,12 @@ class Pelanggan(models.Model):
     def __str__(self):
         return str(self.nama_pelanggan)
     
+    @property
     def total_spending(self):
-        from django.db.models import Sum
+        """
+        Calculate total spending for this customer based on successful transactions
+        This is computed in real-time to ensure data consistency
+        """
         from django.apps import apps
         
         # Get model to avoid circular imports
@@ -54,7 +58,11 @@ class Pelanggan(models.Model):
     
     @property
     def is_loyal(self):
-        return self.total_spending() >= 5000000
+        """
+        Determine if customer is loyal based on total spending threshold
+        This ensures consistent logic across the application
+        """
+        return self.total_spending >= 5000000
 
     @classmethod
     def get_top_purchased_products(cls, pelanggan_id, limit=3):

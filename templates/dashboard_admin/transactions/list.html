@@ -59,17 +59,29 @@
                     </thead>
                     <tbody>
                         {% for transaction in page_obj %}
-                        <tr>
+                        <!-- Highlight rows with 'DIPROSES' status -->
+                        <tr class="{% if transaction.status_transaksi == 'DIPROSES' %}table-warning{% endif %}">
                             <td>{{ transaction.id }}</td>
                             <td>{{ transaction.pelanggan.nama_pelanggan }}</td>
                             <td>{{ transaction.tanggal|date:"d M Y H:i" }}</td>
                             <td>
-                                <span class="badge bg-{{ transaction.status_transaksi|lower }}">
-                                    {{ transaction.status_transaksi }}
-                                </span>
+                                <!-- Status badges with proper Bootstrap classes -->
+                                {% if transaction.status_transaksi == 'DIPROSES' %}
+                                    <span class="badge bg-warning text-dark">Diproses</span>
+                                {% elif transaction.status_transaksi == 'DIBAYAR' %}
+                                    <span class="badge bg-primary">Dibayar</span>
+                                {% elif transaction.status_transaksi == 'DIKIRIM' %}
+                                    <span class="badge bg-info text-dark">Dikirim</span>
+                                {% elif transaction.status_transaksi == 'SELESAI' %}
+                                    <span class="badge bg-success">Selesai</span>
+                                {% elif transaction.status_transaksi == 'DIBATALKAN' %}
+                                    <span class="badge bg-danger">Dibatalkan</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ transaction.status_transaksi }}</span>
+                                {% endif %}
                             </td>
-                            <td>Rp {{ transaction.ongkir|floatformat:0 }}</td>
-                            <td>Rp {{ transaction.total|floatformat:0 }}</td>
+                            <td>Rp {{ transaction.ongkir|floatformat:0|intcomma }}</td>
+                            <td>Rp {{ transaction.total|floatformat:0|intcomma }}</td>
                             <td>
                                 <a href="{% url 'dashboard_admin:transaction_detail' transaction.pk %}" class="btn btn-sm btn-info" title="View">
                                     <i class="fas fa-eye"></i>
@@ -77,6 +89,11 @@
                                 <a href="{% url 'dashboard_admin:transaction_update' transaction.pk %}" class="btn btn-sm btn-warning" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                <!-- Delete button using universal modal -->
+                                <button type="button" class="btn btn-sm btn-danger delete-btn" title="Delete" 
+                                        data-url="{% url 'dashboard_admin:transaction_delete' transaction.pk %}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </td>
                         </tr>
                         {% empty %}
@@ -124,4 +141,5 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Removed old JavaScript confirmation dialog to use universal modal system -->
 {% endblock %}

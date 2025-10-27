@@ -1,0 +1,538 @@
+{% extends 'dashboard_admin/base.html' %}
+{% load static %}
+
+{% block title %}Tambah Transaksi{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Tambah Transaksi Baru</h2>
+        <a href="{% url 'dashboard_admin:transaction_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Kembali ke Daftar Transaksi
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="transaction-form">
+                {% csrf_token %}
+                
+                <!-- Main Transaction Form -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.pelanggan.id_for_label }}" class="form-label">Pelanggan *</label>
+                            {{ form.pelanggan }}
+                            {% if form.pelanggan.errors %}
+                                <div class="text-danger">{{ form.pelanggan.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.status_transaksi.id_for_label }}" class="form-label">Status Transaksi *</label>
+                            {{ form.status_transaksi }}
+                            {% if form.status_transaksi.errors %}
+                                <div class="text-danger">{{ form.status_transaksi.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.ongkir.id_for_label }}" class="form-label">Ongkos Kirim (Rp)</label>
+                            {{ form.ongkir }}
+                            {% if form.ongkir.errors %}
+                                <div class="text-danger">{{ form.ongkir.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.alamat_pengiriman.id_for_label }}" class="form-label">Alamat Pengiriman</label>
+                    {{ form.alamat_pengiriman }}
+                    {% if form.alamat_pengiriman.errors %}
+                        <div class="text-danger">{{ form.alamat_pengiriman.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.bukti_bayar.id_for_label }}" class="form-label">Bukti Pembayaran</label>
+                    {{ form.bukti_bayar }}
+                    {% if form.bukti_bayar.errors %}
+                        <div class="text-danger">{{ form.bukti_bayar.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Detail Transaction Formset -->
+                <h4 class="mt-4 mb-3">Detail Transaksi</h4>
+                {{ formset.management_form }}
+                
+                <div id="detail-transaksi-formset">
+                    {% for form in formset %}
+                        <div class="p-3 mb-2 border rounded detail-item">
+                            {% for hidden in form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+                            <div class="row g-3 align-items-center">
+                                <!-- 1. Kolom Produk (col-md-5) -->
+                                <div class="col-md-5">
+                                    <label class="form-label">Produk</label>
+                                    {{ form.produk }}
+                                    {% if form.produk.errors %}
+                                        <div class="text-danger small mt-1">{{ form.produk.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- 2. Kolom Jumlah Produk (col-md-3) -->
+                                <div class="col-md-3">
+                                    <label class="form-label">Jumlah</label>
+                                    {{ form.jumlah_produk }}
+                                    {% if form.jumlah_produk.errors %}
+                                        <div class="text-danger small mt-1">{{ form.jumlah_produk.errors }}</div>
+                                    {% endif %}
+                                    <small class="text-danger-stock stock-alert-message d-none" style="color: #9c6500;"></small>
+                                </div>
+
+                                <!-- 3. Kolom Sub Total (col-md-3) -->
+                                <div class="col-md-3">
+                                    <label class="form-label">Sub Total (Rp)</label>
+                                    <div class="subtotal-display-wrapper">
+                                        <p class="mb-0 subtotal-display fw-bold text-success" data-numeric-subtotal="0">Rp 0</p>
+                                    </div>
+                                </div>
+
+                                <!-- 4. Kolom Tombol Hapus (col-md-1) -->
+                                <div class="col-md-1 d-flex align-items-end">
+                                    <!-- Sembunyikan checkbox DELETE bawaan -->
+                                    <div class="d-none">{{ form.DELETE }}</div> 
+                                    <button type="button" class="btn btn-danger btn-sm delete-item-btn" title="Hapus Item">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Empty form template for JavaScript -->
+                <div id="empty_form_template" style="display: none;">
+                    <div class="p-3 mb-2 border rounded detail-item">
+                        <div class="row g-3 align-items-center">
+                            <!-- 1. Kolom Produk (col-md-5) -->
+                            <div class="col-md-5">
+                                <label class="form-label">Produk</label>
+                                {{ formset.empty_form.produk }}
+                            </div>
+
+                            <!-- 2. Kolom Jumlah Produk (col-md-3) -->
+                            <div class="col-md-3">
+                                <label class="form-label">Jumlah</label>
+                                {{ formset.empty_form.jumlah_produk }}
+                                <small class="text-danger-stock stock-alert-message d-none" style="color: #9c6500;"></small>
+                            </div>
+
+                            <!-- 3. Kolom Sub Total (col-md-3) -->
+                            <div class="col-md-3">
+                                <label class="form-label">Sub Total (Rp)</label>
+                                <div class="subtotal-display-wrapper">
+                                    <p class="mb-0 subtotal-display fw-bold text-success" data-numeric-subtotal="0">Rp 0</p>
+                                </div>
+                            </div>
+
+                            <!-- 4. Kolom Tombol Hapus (col-md-1) -->
+                            <div class="col-md-1 d-flex align-items-end">
+                                <!-- Sembunyikan checkbox DELETE bawaan -->
+                                <div class="d-none">{{ formset.empty_form.DELETE }}</div> 
+                                <button type="button" class="btn btn-danger btn-sm delete-item-btn" title="Hapus Item">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Transaction Summary -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5>Ringkasan Transaksi</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Sub Total:</strong> Rp <span id="subtotal-amount">0</span></p>
+                                <p><strong>Ongkos Kirim:</strong> Rp <span id="shipping-amount">0</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="fs-5"><strong>Total:</strong> Rp <span id="total-amount">0</span></p>
+                                <!-- Hidden input for total value to be sent to server -->
+                                <input type="hidden" id="id_total" name="total" value="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <a href="{% url 'dashboard_admin:transaction_list' %}" class="btn btn-secondary">Batal</a>
+                    <button type="submit" class="btn btn-primary">Simpan Transaksi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Pass product prices from Django to JavaScript
+    const productPrices = {{ product_prices|safe }};
+    // Pass product stock from Django to JavaScript
+    const productStock = {{ product_stock|safe }};
+    
+    // Format number as Rupiah
+    function formatRupiah(number) {
+        return 'Rp ' + Math.round(number).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+    
+    // Format number with thousand separators
+    function formatNumber(number) {
+        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+    
+    // Update product dropdown options with stock information
+    function updateProductOptions(selectElement) {
+        const options = selectElement.querySelectorAll('option');
+        options.forEach(option => {
+            if (option.value) {
+                const productId = parseInt(option.value);
+                if (productStock[productId] !== undefined) {
+                    const stock = productStock[productId];
+                    // Store original text if not already stored
+                    if (!option.dataset.originalText) {
+                        option.dataset.originalText = option.textContent;
+                    }
+                    option.textContent = option.dataset.originalText + ' (Stok: ' + formatNumber(stock) + ')';
+                }
+            }
+        });
+    }
+    
+    // Dynamic formset handling for adding/removing detail transaction forms
+    document.addEventListener('DOMContentLoaded', function() {
+        const formsetContainer = document.getElementById('detail-transaksi-formset');
+        const addButton = document.createElement('button');
+        addButton.type = 'button';
+        addButton.className = 'btn btn-success mb-3';
+        addButton.innerHTML = '<i class="fas fa-plus"></i> Tambah Item';
+        formsetContainer.parentNode.insertBefore(addButton, formsetContainer.nextSibling);
+        
+        // Get the empty form template
+        const emptyFormTemplate = document.getElementById('empty_form_template');
+        
+        // Update existing product dropdowns with stock information
+        const existingProductSelects = document.querySelectorAll('.product-select');
+        existingProductSelects.forEach(select => {
+            updateProductOptions(select);
+        });
+        
+        addButton.addEventListener('click', function() {
+            const totalForms = document.getElementById('id_detailtransaksi_set-TOTAL_FORMS');
+            const formCount = parseInt(totalForms.value);
+            
+            // Clone the empty form template
+            const newForm = emptyFormTemplate.cloneNode(true);
+            newForm.style.display = 'block';
+            
+            // Update form elements with proper names and IDs
+            const formElements = newForm.querySelectorAll('select, input');
+            formElements.forEach(element => {
+                if (element.name) {
+                    element.name = element.name.replace('__prefix__', formCount);
+                }
+                if (element.id) {
+                    element.id = element.id.replace('__prefix__', formCount);
+                }
+            });
+            
+            // Update labels
+            const labels = newForm.querySelectorAll('label');
+            labels.forEach(label => {
+                if (label.htmlFor) {
+                    label.htmlFor = label.htmlFor.replace('__prefix__', formCount);
+                }
+            });
+            
+            // Create a new div for the form
+            const formDiv = document.createElement('div');
+            formDiv.className = 'detail-item p-3 mb-2 border rounded';
+            formDiv.appendChild(newForm);
+            
+            // The remove button is already in the cloned template, so we don't need to create it
+            // Just add event listener to the existing remove button
+            const removeButton = formDiv.querySelector('.delete-item-btn');
+            if (removeButton) {
+                removeButton.addEventListener('click', function() {
+                    formDiv.remove();
+                    updateFormIndexes();
+                    calculateTotals();
+                });
+            }
+            
+            // Append the new form to the container
+            formsetContainer.appendChild(formDiv);
+            
+            // Update product options for the new select
+            const newProductSelect = formDiv.querySelector('.product-select');
+            if (newProductSelect) {
+                updateProductOptions(newProductSelect);
+            }
+            
+            // Update total forms count
+            totalForms.value = formCount + 1;
+            
+            // Update form indexes
+            updateFormIndexes();
+        });
+        
+        // Function to update form indexes
+        function updateFormIndexes() {
+            const forms = document.querySelectorAll('.detail-item');
+            const totalForms = document.getElementById('id_detailtransaksi_set-TOTAL_FORMS');
+            
+            forms.forEach((form, index) => {
+                // Update all input names and IDs
+                const inputs = form.querySelectorAll('input, select');
+                inputs.forEach(input => {
+                    if (input.name) {
+                        input.name = input.name.replace(/detailtransaksi_set-\d+-/, `detailtransaksi_set-${index}-`);
+                    }
+                    if (input.id) {
+                        input.id = input.id.replace(/id_detailtransaksi_set-\d+-/, `id_detailtransaksi_set-${index}-`);
+                    }
+                });
+                
+                // Update labels
+                const labels = form.querySelectorAll('label');
+                labels.forEach(label => {
+                    if (label.htmlFor) {
+                        label.htmlFor = label.htmlFor.replace(/id_detailtransaksi_set-\d+-/, `id_detailtransaksi_set-${index}-`);
+                    }
+                });
+            });
+            
+            totalForms.value = forms.length;
+        }
+        
+        // Add event listeners to form elements for real-time calculations
+        function addEventListenersToForm(formElement) {
+            const productSelect = formElement.querySelector('.product-select');
+            const quantityInput = formElement.querySelector('.quantity-input');
+            const subtotalDisplay = formElement.querySelector('.subtotal-display');
+            
+            if (productSelect && quantityInput && subtotalDisplay) {
+                // Calculate subtotal when product or quantity changes
+                productSelect.addEventListener('change', calculateSubtotal);
+                quantityInput.addEventListener('input', calculateSubtotal);
+                
+                // Add stock validation
+                productSelect.addEventListener('change', validateStock);
+                quantityInput.addEventListener('input', validateStock);
+                
+                // Initialize subtotal calculation for existing forms
+                calculateSubtotal.call(productSelect);
+            }
+        }
+        
+        // Calculate subtotal for a line item
+        function calculateSubtotal() {
+            const formElement = this.closest('.detail-item');
+            const productSelect = formElement.querySelector('.product-select');
+            const quantityInput = formElement.querySelector('.quantity-input');
+            const subtotalDisplay = formElement.querySelector('.subtotal-display');
+            
+            if (productSelect && quantityInput && subtotalDisplay) {
+                const productId = productSelect.value;
+                const quantity = parseInt(quantityInput.value) || 0;
+                
+                if (productId && quantity > 0 && productPrices[productId]) {
+                    const price = productPrices[productId];
+                    const subtotal = price * quantity;
+                    
+                    // Format subtotal as Rupiah in the display element
+                    subtotalDisplay.textContent = formatRupiah(subtotal);
+                    // Store the numeric value in a data attribute for later calculation
+                    subtotalDisplay.dataset.numericSubtotal = subtotal;
+                } else {
+                    // Format 0 as Rupiah in the display element
+                    subtotalDisplay.textContent = 'Rp 0';
+                    // Store the numeric value in a data attribute for later calculation
+                    subtotalDisplay.dataset.numericSubtotal = '0';
+                }
+                
+                // Update totals
+                calculateTotals();
+            }
+        }
+        
+        // Validate stock for a line item
+        function validateStock() {
+            const formElement = this.closest('.detail-item');
+            const productSelect = formElement.querySelector('.product-select');
+            const quantityInput = formElement.querySelector('.quantity-input');
+            const stockAlert = formElement.querySelector('.stock-alert-message');
+            
+            if (productSelect && quantityInput && stockAlert) {
+                const productId = productSelect.value;
+                const quantity = parseInt(quantityInput.value) || 0;
+                
+                if (productId && quantity > 0 && productStock[productId] !== undefined) {
+                    const stock = productStock[productId];
+                    
+                    if (quantity > stock) {
+                        // Show stock alert
+                        stockAlert.textContent = `Stok tidak cukup. Maks: ${formatNumber(stock)}`;
+                        stockAlert.classList.remove('d-none');
+                        return false;
+                    } else {
+                        // Hide stock alert
+                        stockAlert.classList.add('d-none');
+                        return true;
+                    }
+                } else {
+                    // Hide stock alert if no product selected or quantity is 0
+                    stockAlert.classList.add('d-none');
+                    return true;
+                }
+            }
+            return true;
+        }
+        
+        // Calculate overall totals
+        function calculateTotals() {
+            // Calculate subtotal (sum of all line items)
+            let subtotal = 0;
+            const subtotalDisplays = document.querySelectorAll('.subtotal-display');
+            subtotalDisplays.forEach(display => {
+                // Use the stored numeric value instead of parsing the formatted string
+                let value = parseFloat(display.dataset.numericSubtotal) || 0;
+                subtotal += value;
+            });
+            
+            // Get shipping value
+            const shippingInput = document.getElementById('id_ongkir');
+            const shipping = parseFloat(shippingInput.value) || 0;
+            
+            // Calculate total
+            const total = subtotal + shipping;
+            
+            // Update display elements with formatted numbers
+            document.getElementById('subtotal-amount').textContent = formatRupiah(subtotal);
+            document.getElementById('shipping-amount').textContent = formatRupiah(shipping);
+            document.getElementById('total-amount').textContent = formatRupiah(total);
+            
+            // Update hidden total input with pure numeric value
+            document.getElementById('id_total').value = total.toFixed(2);
+        }
+        
+        // Global flag for stock validation
+        let isStockValid = true;
+        
+        // Validate all stock before form submission
+        function validateAllStock() {
+            let allValid = true;
+            const forms = document.querySelectorAll('.detail-item');
+            
+            forms.forEach(form => {
+                const productSelect = form.querySelector('.product-select');
+                const quantityInput = form.querySelector('.quantity-input');
+                
+                if (productSelect && quantityInput) {
+                    const productId = productSelect.value;
+                    const quantity = parseInt(quantityInput.value) || 0;
+                    
+                    if (productId && quantity > 0 && productStock[productId] !== undefined) {
+                        const stock = productStock[productId];
+                        if (quantity > stock) {
+                            allValid = false;
+                        }
+                    }
+                }
+            });
+            
+            return allValid;
+        }
+        
+        // Add event listeners to existing forms
+        const existingForms = document.querySelectorAll('.detail-item');
+        existingForms.forEach(form => {
+            addEventListenersToForm(form);
+        });
+        
+        // Add event listeners to shipping input
+        const shippingInput = document.getElementById('id_ongkir');
+        if (shippingInput) {
+            shippingInput.addEventListener('input', calculateTotals);
+        }
+        
+        // Add remove buttons to existing forms
+        existingForms.forEach((form, index) => {
+            const deleteButton = form.querySelector('.delete-item-btn');
+            if (deleteButton) {
+                // Remove any existing event listeners to avoid duplicates
+                const newDeleteButton = deleteButton.cloneNode(true);
+                deleteButton.parentNode.replaceChild(newDeleteButton, deleteButton);
+                newDeleteButton.addEventListener('click', function() {
+                    form.remove();
+                    updateFormIndexes();
+                    calculateTotals();
+                });
+            }
+        });
+        
+        // Function to show error modal
+        function showErrorModal(message) {
+            document.getElementById('errorModalMessage').textContent = message;
+            const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+            errorModal.show();
+        }
+        
+        // Add form submission validation
+        const transactionForm = document.getElementById('transaction-form');
+        if (transactionForm) {
+            transactionForm.addEventListener('submit', function(e) {
+                if (!validateAllStock()) {
+                    e.preventDefault();
+                    // Replace alert() with Bootstrap Modal
+                    showErrorModal("Terdapat kesalahan stok pada beberapa item. Silakan periksa kolom Jumlah untuk perincian. Data tidak dapat disimpan.");
+                    return false;
+                }
+            });
+        }
+        
+        // Initialize calculations
+        calculateTotals();
+    });
+</script>
+{% endblock %}
+
+<!-- Modal Bootstrap untuk Pesan Kesalahan -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="errorModalLabel"><i class="fas fa-exclamation-triangle"></i> Kesalahan Validasi</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Pesan Kesalahan akan dimasukkan di sini oleh JavaScript -->
+                <p id="errorModalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
