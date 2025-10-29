@@ -102,8 +102,8 @@ def dashboard(request):
         # Get recent transactions
         recent_transactions = Transaksi.objects.select_related('pelanggan').order_by('-tanggal')[:5]
         
-        # Get low stock products
-        low_stock_products = Produk.objects.filter(stok_produk__lt=5).order_by('stok_produk')
+        # Get low stock products: urutkan berdasarkan stok (naik) dan batasi 5
+        low_stock_products = Produk.objects.order_by('stok_produk')[:5]
         
         # Get top 5 best selling products (by quantity) - prepare data for Chart.js
         PAID_STATUSES = ['DIBAYAR', 'DIKIRIM', 'SELESAI']

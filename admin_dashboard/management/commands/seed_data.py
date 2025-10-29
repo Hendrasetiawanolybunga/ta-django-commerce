@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
+import random
 from admin_dashboard.models import Kategori, Produk, Pelanggan, Transaksi, DetailTransaksi
 
 class Command(BaseCommand):
@@ -192,133 +193,70 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(f'  Created Pelanggan: {pelanggan_obj.nama_pelanggan}')
         
-        # 4. Seed Transaksi Kritis (8 Entries)
+        # 4. Seed Transaksi Data (20-30 Entries)
         self.stdout.write('Seeding Transaksi data...')
         
-        # Assuming today is 2025-10-19
-        today = timezone.now()
+        # Define date range: August 1, 2025 to October 30, 2025
+        start_date = timezone.make_aware(datetime(2025, 8, 1))
+        end_date = timezone.make_aware(datetime(2025, 10, 30))
         
-        transaksi_data = [
-            {
-                'pelanggan': pelanggan_objects[0],  # Rani Safira
-                'status_transaksi': 'DIBAYAR',
-                'waktu_checkout': today - timedelta(days=2, hours=7),  # 2025-10-17 11:00
-                'total': 1000000,
-                'ongkir': 0,
-                'alamat_pengiriman': 'Jl. Timor Raya No. 15, Oesapa, Kupang',
-                'keterangan': 'Kritis: Loyalitas (Diskon Ultah). Total pembelian harus sudah >= 5 Juta.',
-                'produk_details': [
-                    {'produk': produk_objects[0], 'jumlah_produk': 1, 'sub_total': 1000000}  # Tiang Teras Full Set Motif Kotak & Bunga
-                ]
-            },
-            {
-                'pelanggan': pelanggan_objects[4],  # Citra Dewi
-                'status_transaksi': 'DIPROSES',
-                'waktu_checkout': today - timedelta(days=1, hours=9),  # 2025-10-18 09:00
-                'total': 250000,
-                'ongkir': 0,
-                'alamat_pengiriman': 'Komplek Perumahan Citra Land, Kupang',
-                'keterangan': 'Kritis: Batas Waktu Kadaluarsa. Batas bayar sudah lewat (2025-10-19 09:00).',
-                'produk_details': [
-                    {'produk': produk_objects[6], 'jumlah_produk': 1, 'sub_total': 250000}  # Cincin Tiang Teras Motif Garis Vertikal
-                ]
-            },
-            {
-                'pelanggan': pelanggan_objects[2],  # Maria Elena
-                'status_transaksi': 'DIBAYAR',
-                'waktu_checkout': today - timedelta(days=5, hours=6),  # 2025-10-14 15:00
-                'total': 1000000,
-                'ongkir': 0,
-                'alamat_pengiriman': 'Desa Lifuleo, Kupang Barat, Kupang',
-                'keterangan': 'Kritis: Stok Pengembalian. Harus dibatalkan secara manual.',
-                'produk_details': [
-                    {'produk': produk_objects[1], 'jumlah_produk': 1, 'sub_total': 1000000}  # Tiang Teras Full Set Motif Garis & Bintang
-                ]
-            },
-            {
-                'pelanggan': pelanggan_objects[1],  # Anton Setyawan
-                'status_transaksi': 'SELESAI',
-                'waktu_checkout': today - timedelta(days=6, hours=4),  # 2025-10-13 10:00
-                'total': 35000,
-                'ongkir': 0,
-                'alamat_pengiriman': 'Perumahan BTN Kolhua Blok C, Kupang',
-                'keterangan': 'Uji Laporan.',
-                'produk_details': [
-                    {'produk': produk_objects[3], 'jumlah_produk': 1, 'sub_total': 35000}  # Batu tempel motif bintang
-                ]
-            },
-            {
-                'pelanggan': pelanggan_objects[3],  # Budi Karya
-                'status_transaksi': 'DIKIRIM',
-                'waktu_checkout': today - timedelta(days=7, hours=1),  # 2025-10-12 14:00
-                'total': 450000,
-                'ongkir': 25000,
-                'alamat_pengiriman': 'Jln. Adisucipto No. 5, Penfui, Kupang',
-                'keterangan': 'Uji Laporan.',
-                'produk_details': [
-                    {'produk': produk_objects[5], 'jumlah_produk': 1, 'sub_total': 450000}  # Cincin Tiang Teras Motif Bintang Timbul
-                ]
-            },
-            {
-                'pelanggan': pelanggan_objects[5],  # Dedy Pratama
-                'status_transaksi': 'DIBAYAR',
-                'waktu_checkout': today - timedelta(days=8, hours=4),  # 2025-10-11 11:00
-                'total': 300000,
-                'ongkir': 0,
-                'alamat_pengiriman': 'Kel. Fatululi, Kota Raja, Kupang',
-                'keterangan': 'Uji Laporan.',
-                'produk_details': [
-                    {'produk': produk_objects[7], 'jumlah_produk': 1, 'sub_total': 300000}  # Cincin Tiang Teras Motif Bunga Klasik
-                ]
-            },
-            {
-                'pelanggan': pelanggan_objects[0],  # Rani Safira
-                'status_transaksi': 'SELESAI',
-                'waktu_checkout': today - timedelta(days=10, hours=1),  # 2025-10-09 16:00
-                'total': 1000000,
-                'ongkir': 0,
-                'alamat_pengiriman': 'Jl. Timor Raya No. 15, Oesapa, Kupang',
-                'keterangan': 'Kritis: Transaksi Loyalitas Tambahan. (Total T01 + T07 harus membuat Rani >= 5 Juta).',
-                'produk_details': [
-                    {'produk': produk_objects[2], 'jumlah_produk': 1, 'sub_total': 1000000}  # Tiang Teras Full Set Motif Berlian
-                ]
-            },
-            {
-                'pelanggan': pelanggan_objects[1],  # Anton Setyawan
-                'status_transaksi': 'SELESAI',
-                'waktu_checkout': today - timedelta(days=11, hours=8),  # 2025-10-08 09:00
-                'total': 35000,
-                'ongkir': 0,
-                'alamat_pengiriman': 'Perumahan BTN Kolhua Blok C, Kupang',
-                'keterangan': 'Uji Transaksi Kecil.',
-                'produk_details': [
-                    {'produk': produk_objects[4], 'jumlah_produk': 1, 'sub_total': 35000}  # Batu tempel motif geometris
-                ]
-            }
-        ]
-        
-        for transaksi_info in transaksi_data:
-            # Create transaction without manual ID
+        # Generate 25 transactions with random dates and data
+        for i in range(25):
+            # Select random customer
+            pelanggan = random.choice(pelanggan_objects)
+            
+            # Generate random date between start_date and end_date
+            random_days = random.randint(0, (end_date - start_date).days)
+            random_date = start_date + timedelta(days=random_days)
+            
+            # Add random time (hours and minutes)
+            random_hour = random.randint(0, 23)
+            random_minute = random.randint(0, 59)
+            waktu_checkout = random_date.replace(hour=random_hour, minute=random_minute)
+            
+            # Select random status with weighted probability
+            # 60% 'SELESAI', 30% 'DIBAYAR', 10% 'DIBATALKAN'
+            status_choices = ['SELESAI'] * 6 + ['DIBAYAR'] * 3 + ['DIBATALKAN'] * 1
+            status_transaksi = random.choice(status_choices)
+            
+            # Create transaction
             transaksi_obj = Transaksi.objects.create(
-                pelanggan=transaksi_info['pelanggan'],
-                status_transaksi=transaksi_info['status_transaksi'],
-                waktu_checkout=transaksi_info['waktu_checkout'],
-                batas_waktu_bayar=transaksi_info['waktu_checkout'] + timedelta(hours=24),
-                total=transaksi_info['total'],
-                ongkir=transaksi_info['ongkir'],
-                alamat_pengiriman=transaksi_info['alamat_pengiriman']
+                pelanggan=pelanggan,
+                status_transaksi=status_transaksi,
+                waktu_checkout=waktu_checkout,
+                batas_waktu_bayar=waktu_checkout + timedelta(hours=24),
+                ongkir=random.choice([0, 15000, 25000, 35000]),
+                alamat_pengiriman=pelanggan.alamat
             )
             
-            # Create detail transaksi
-            for detail in transaksi_info['produk_details']:
+            # Create 2-4 detail transactions
+            total = 0
+            num_items = random.randint(2, 4)
+            
+            for j in range(num_items):
+                # Select random product
+                produk = random.choice(produk_objects)
+                
+                # Generate random quantity (1-5)
+                jumlah_produk = random.randint(1, 5)
+                
+                # Calculate sub_total
+                sub_total = jumlah_produk * produk.harga_produk
+                total += sub_total
+                
+                # Create detail transaction
                 DetailTransaksi.objects.create(
                     transaksi=transaksi_obj,
-                    produk=detail['produk'],
-                    jumlah_produk=detail['jumlah_produk'],
-                    sub_total=detail['sub_total']
+                    produk=produk,
+                    jumlah_produk=jumlah_produk,
+                    sub_total=sub_total
                 )
             
-            self.stdout.write(f'  Created Transaksi: #{transaksi_obj.id} - {transaksi_info["keterangan"]}')
+            # Update transaction total (sum of sub_totals + ongkir)
+            transaksi_obj.total = total + transaksi_obj.ongkir
+            transaksi_obj.save()
+            
+            self.stdout.write(f'  Created Transaksi: #{transaksi_obj.id} - {pelanggan.nama_pelanggan} - {status_transaksi} - {waktu_checkout.strftime("%Y-%m-%d %H:%M")}')
         
         self.stdout.write(
             self.style.SUCCESS(

@@ -114,7 +114,9 @@
                             <tbody>
                                 {% for transaction in recent_transactions %}
                                 <tr>
-                                    <td>{{ transaction.id }}</td>
+                                    <td>
+                                        <a href="{% url 'dashboard_admin:transaction_detail' transaction.id %}" class="text-primary fw-bold">{{ transaction.id }}</a>
+                                    </td>
                                     <td>{{ transaction.pelanggan.nama_pelanggan }}</td>
                                     <td>{{ transaction.tanggal|date:"d M Y" }}</td>
                                     <td>
@@ -151,7 +153,9 @@
                             <tbody>
                                 {% for product in low_stock_products %}
                                 <tr>
-                                    <td>{{ product.nama_produk }}</td>
+                                    <td>
+                                        <a href="{% url 'dashboard_admin:product_detail' product.id %}">{{ product.nama_produk }}</a>
+                                    </td>
                                     <td>{{ product.kategori.nama_kategori|default:"-" }}</td>
                                     <td>{{ product.stok_produk }}</td>
                                 </tr>
